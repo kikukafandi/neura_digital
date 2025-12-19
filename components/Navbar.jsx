@@ -16,7 +16,7 @@ const Navbar = () => {
     const handleLinkClick = () => setIsOpen(false);
 
     const navLinks = [
-        { name: "Produk", href: "#products" },
+        { name: "Produk", href: "products" },
         { name: "Tentang", href: "#about" },
         { name: "Keunggulan", href: "#features" },
     ];
