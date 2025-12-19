@@ -24,13 +24,13 @@ const HeroSection = () => {
 
                 <div className="animate-enter delay-300 opacity-0 flex flex-col gap-4 sm:flex-row sm:justify-center">
                     <Link
-                        href="#products"
+                        href="/products"
                         className="inline-flex h-14 items-center justify-center rounded-full bg-[#0A2540] px-8 text-base font-bold text-white transition-all hover:bg-[#0052CC] hover:shadow-[0_0_20px_rgba(0,82,204,0.3)] hover:-translate-y-1"
                     >
                         Lihat Produk
                     </Link>
                     <Link
-                        href="#about"
+                        href="/about"
                         className="inline-flex h-14 items-center justify-center rounded-full border border-gray-200 bg-white/60 px-8 text-base font-bold text-gray-800 backdrop-blur-sm transition-all hover:bg-white hover:border-gray-300 hover:shadow-md"
                     >
                         Pelajari Konsep

@@ -9,7 +9,9 @@ const Footer = () => {
                     {/* Brand Info */}
                     <div className="max-w-sm">
                         <Link href="/" className="text-xl font-bold text-[#0A2540] flex items-center gap-2 mb-4">
-                            <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-xs">N</div>
+                            <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-xs">
+                                <img src="icon.png" alt="neura-icon" />
+                            </div>
                             Neura Digital
                         </Link>
                         <p className="text-gray-500 text-sm leading-relaxed">
