@@ -76,12 +76,12 @@ const ProductsSection = ({ products = [], isLoading = false }) => {
                                         </span>
                                     </div>
                                     <h3 className="mb-2 text-xl font-bold text-[#0A2540] group-hover:text-blue-700 transition-colors">
-                                        {product.name}
+                                        <Link href={`/products/${product.slug}`}>{product.name}</Link>
                                     </h3>
 
                                     {/* Deskripsi dipotong agar rapi */}
                                     <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-grow line-clamp-2">
-                                        {product.description || "Tingkatkan produktivitas Anda dengan alat digital premium ini."}
+                                        {product.short_description || product.description || "Tingkatkan produktivitas Anda dengan alat digital premium ini."}
                                     </p>
 
                                     <a

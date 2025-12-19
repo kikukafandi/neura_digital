@@ -9,8 +9,8 @@ const Footer = () => {
                     {/* Brand Info */}
                     <div className="max-w-sm">
                         <Link href="/" className="text-xl font-bold text-[#0A2540] flex items-center gap-2 mb-4">
-                            <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center text-white text-xs">
-                                <img src="icon.png" alt="neura-icon" />
+                            <div className="w-6 h-6  rounded flex items-center justify-center text-white text-xs">
+                                <img src="/icon.png" alt="neura-icon" className="rounded-full"/>
                             </div>
                             Neura Digital
                         </Link>
@@ -24,9 +24,9 @@ const Footer = () => {
                         <div>
                             <h4 className="font-bold text-[#0A2540] mb-4">Menu</h4>
                             <ul className="space-y-2 text-gray-500">
-                                <li><Link href="#products" className="hover:text-blue-600">Produk</Link></li>
-                                <li><Link href="#about" className="hover:text-blue-600">Tentang</Link></li>
-                                <li><Link href="#features" className="hover:text-blue-600">Fitur</Link></li>
+                                <li><Link href="/products" className="hover:text-blue-600">Produk</Link></li>
+                                <li><Link href="/about" className="hover:text-blue-600">Tentang</Link></li>
+                                <li><Link href="/features" className="hover:text-blue-600">Fitur</Link></li>
                             </ul>
                         </div>
                         <div>

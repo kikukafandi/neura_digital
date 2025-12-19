@@ -5,8 +5,9 @@ import { createClient } from "@/utils/supabase/client";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { ExternalLink, Search, Filter } from "lucide-react";
+import Link from "next/link"; // Jangan lupa import Link
 
-// --- Styles (Bisa dipindah ke globals.css) ---
+// --- Styles ---
 const customStyles = `
   @keyframes fade-in-up {
     0% { opacity: 0; transform: translateY(20px); }
@@ -108,8 +109,8 @@ export default function ProductsPage() {
                                     key={cat}
                                     onClick={() => setActiveCategory(cat)}
                                     className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${activeCategory === cat
-                                            ? "bg-[#0A2540] text-white shadow-lg scale-105"
-                                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                                        ? "bg-[#0A2540] text-white shadow-lg scale-105"
+                                        : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                                         }`}
                                 >
                                     {cat}
@@ -126,10 +127,11 @@ export default function ProductsPage() {
                             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 animate-enter delay-300 opacity-0">
                                 {filteredProducts.length > 0 ? (
                                     filteredProducts.map((product) => (
-                                        <div key={product.id} className={`${glassCardClass} flex flex-col group h-full`}>
+                                        // PERBAIKAN 1: Gunakan 'div' sebagai pembungkus utama (bukan Link)
+                                        <div key={product.id} className={`${glassCardClass} flex flex-col group h-full relative`}>
 
-                                            {/* Image Area */}
-                                            <div className="h-56 w-full bg-gray-50 relative overflow-hidden rounded-t-2xl flex items-center justify-center">
+                                            {/* PERBAIKAN 2: Bungkus Gambar dengan Link ke detail */}
+                                            <Link href={`/products/${product.slug}`} className="block h-56 w-full bg-gray-50 relative overflow-hidden rounded-t-2xl flex items-center justify-center cursor-pointer">
                                                 <div className="absolute top-4 left-4 z-10">
                                                     <span className="px-3 py-1 bg-white/90 backdrop-blur-md text-[#0A2540] text-xs font-bold rounded-full shadow-sm">
                                                         {product.category}
@@ -147,19 +149,22 @@ export default function ProductsPage() {
                                                         <Search size={48} />
                                                     </div>
                                                 )}
-                                            </div>
+                                            </Link>
 
                                             {/* Content Area */}
                                             <div className="p-6 flex flex-col flex-grow">
                                                 <div className="mb-2">
-                                                    <h3 className="text-xl font-bold text-[#0A2540] leading-tight group-hover:text-blue-700 transition-colors">
-                                                        {product.name}
-                                                    </h3>
+                                                    {/* PERBAIKAN 3: Bungkus Judul dengan Link ke detail */}
+                                                    <Link href={`/products/${product.slug}`} className="cursor-pointer">
+                                                        <h3 className="text-xl font-bold text-[#0A2540] leading-tight group-hover:text-blue-700 transition-colors">
+                                                            {product.name}
+                                                        </h3>
+                                                    </Link>
                                                 </div>
 
                                                 {product.description && (
                                                     <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-grow line-clamp-3">
-                                                        {product.description}
+                                                        {product.short_description || product.description || "Tingkatkan produktivitas Anda dengan alat digital premium ini."}
                                                     </p>
                                                 )}
 
@@ -167,6 +172,8 @@ export default function ProductsPage() {
                                                     <span className="text-lg font-bold text-[#0A2540]">
                                                         {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(product.price)}
                                                     </span>
+
+                                                    {/* Tombol Beli (Tag <a> Terpisah, Aman dari nesting error) */}
                                                     <a
                                                         href={product.checkout_url}
                                                         target="_blank"
