@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Neura Digital
 
-## Getting Started
+**Clarity in Digital Thinking**
 
-First, run the development server:
+Neura Digital adalah brand produk digital yang berfokus pada **kejernihan berpikir, struktur, dan kesederhanaan** dalam dunia digital.  
+Kami percaya bahwa produk digital yang baik tidak harus rumit — yang terpenting adalah **jelas, relevan, dan tepat guna**.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✦ Tentang Neura Digital
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Neura Digital hadir sebagai ruang untuk:
+- Produk digital yang dirancang dengan logika yang rapi
+- Sumber belajar yang tidak membingungkan
+- Tools dan template yang langsung bisa dipakai
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Kami tidak mengejar kompleksitas.  
+Kami mengejar **kejelasan**.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## ✦ Apa yang Kami Bangun
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Neura Digital mengembangkan:
+- Produk digital berbasis edukasi
+- Tools & template untuk produktivitas digital
+- Resource yang membantu proses belajar dan membangun sesuatu dengan lebih terstruktur
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Semua dibuat dengan prinsip:
+> *Think clearly before building digitally.*
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ✦ Filosofi
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Clarity over complexity**  
+- **Structure before scale**  
+- **Purpose-driven digital products**
+
+Kami percaya bahwa berpikir jernih adalah fondasi dari produk digital yang berkelanjutan.
+
+---
+
+## ✦ Status Proyek
+
+Neura Digital masih dalam tahap pengembangan dan validasi.  
+Beberapa bagian akan terus berkembang seiring waktu, sejalan dengan kebutuhan pengguna dan arah produk.
+
+---
+
+## ✦ Catatan
+
+Repository ini merepresentasikan bagian dari ekosistem Neura Digital.  
+Konten dan struktur di dalamnya dapat berubah tanpa pemberitahuan sebagai bagian dari proses iterasi.
+
+---
+
+© Neura Digital  
