@@ -33,9 +33,9 @@ const Navbar = () => {
                 {/* Logo */}
                 <Link href="/" className="text-2xl font-bold tracking-tight text-[#0A2540] flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                        <img src="/icon.png" alt="neura-icon" className="rounded-full" />
+                        <img src="/icon.png" alt="nalar-icon" className="rounded-full" />
                     </div>
-                    Neura Digital
+                    Simpul Nalar
                 </Link>
 
                 {/* Desktop Links */}

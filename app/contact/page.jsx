@@ -26,7 +26,7 @@ export default function ContactPage() {
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <Mail className="text-blue-400" />
-                                        <span>neuradigitial@gmail.com</span>
+                                        <span>simpulnalar20@gmail.com</span>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <MapPin className="text-blue-400" />

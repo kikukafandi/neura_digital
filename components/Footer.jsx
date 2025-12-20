@@ -10,9 +10,9 @@ const Footer = () => {
                     <div className="max-w-sm">
                         <Link href="/" className="text-xl font-bold text-[#0A2540] flex items-center gap-2 mb-4">
                             <div className="w-6 h-6  rounded flex items-center justify-center text-white text-xs">
-                                <img src="/icon.png" alt="neura-icon" className="rounded-full"/>
+                                <img src="/icon.png" alt="nalar-icon" className="rounded-full"/>
                             </div>
-                            Neura Digital
+                            Simpul Nalar
                         </Link>
                         <p className="text-gray-500 text-sm leading-relaxed">
                             Membangun ekosistem digital yang lebih bersih, terstruktur, dan produktif untuk kreator Indonesia.
@@ -40,7 +40,7 @@ const Footer = () => {
                 </div>
 
                 <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400">
-                    <p>&copy; {new Date().getFullYear()} Neura Digital. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} Simpul Nalar. All rights reserved.</p>
                     <div className="mt-2 md:mt-0 flex gap-4">
                         <span className="hover:text-gray-600 cursor-pointer">Instagram</span>
                         <span className="hover:text-gray-600 cursor-pointer">Twitter / X</span>

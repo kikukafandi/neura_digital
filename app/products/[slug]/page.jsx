@@ -60,7 +60,7 @@ const SimpleHeader = () => (
     <div className="w-full flex justify-center py-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-[40px] z-40">
          <div className="text-lg font-bold tracking-tight text-[#0A2540] flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">N</div>
-            Neura Digital
+            Simpul Nalar
         </div>
     </div>
 );
@@ -71,7 +71,7 @@ const SimpleFooter = () => (
             <Lock size={14} />
             <span>256-bit SSL Secure Payment</span>
         </div>
-        <p>&copy; {new Date().getFullYear()} Neura Digital. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Simpul Nalar. All rights reserved.</p>
     </footer>
 );
 

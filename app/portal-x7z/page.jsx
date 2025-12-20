@@ -85,7 +85,7 @@ export default function LoginPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     // PERBAIKAN: Ditambahkan 'bg-white text-gray-900' agar teks terlihat
                                     className="block w-full rounded-lg border border-gray-300 bg-white text-gray-900 pl-10 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 sm:text-sm"
-                                    placeholder="admin@neuradigital.com"
+                                    placeholder="admin@simpulnalar20.com"
                                 />
                             </div>
                         </div>

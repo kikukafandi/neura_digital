@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Neura Digital - Solusi Digital Produktif untuk Kreator",
+  title: "Simpul Nalar - Solusi Digital Produktif untuk Kreator",
   description: "Membangun ekosistem digital yang lebih bersih, terstruktur, dan produktif untuk kreator Indonesia.",
 };
 

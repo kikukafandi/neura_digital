@@ -21,7 +21,7 @@ const CTASection = () => {
                         <Link href="products" className="rounded-lg bg-white px-8 py-4 text-base font-bold text-[#0A2540] transition-transform hover:scale-105 hover:bg-gray-100">
                             Lihat Katalog Produk
                         </Link>
-                        <a href="mailto:neuradigitial@gmail.com" className="rounded-lg border border-white/30 bg-white/10 backdrop-blur-sm px-8 py-4 text-base font-bold text-white transition-colors hover:bg-white/20">
+                        <a href="mailto:simpulnalar20@gmail.com" className="rounded-lg border border-white/30 bg-white/10 backdrop-blur-sm px-8 py-4 text-base font-bold text-white transition-colors hover:bg-white/20">
                             Hubungi Support
                         </a>
                     </div>

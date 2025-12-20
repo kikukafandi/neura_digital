@@ -1,15 +1,15 @@
-# Neura Digital
+# Simpul Nalar
 
 **Clarity in Digital Thinking**
 
-Neura Digital adalah brand produk digital yang berfokus pada **kejernihan berpikir, struktur, dan kesederhanaan** dalam dunia digital.  
+Simpul Nalar adalah brand produk digital yang berfokus pada **kejernihan berpikir, struktur, dan kesederhanaan** dalam dunia digital.  
 Kami percaya bahwa produk digital yang baik tidak harus rumit — yang terpenting adalah **jelas, relevan, dan tepat guna**.
 
 ---
 
-## ✦ Tentang Neura Digital
+## ✦ Tentang Simpul Nalar
 
-Neura Digital hadir sebagai ruang untuk:
+Simpul Nalar hadir sebagai ruang untuk:
 - Produk digital yang dirancang dengan logika yang rapi
 - Sumber belajar yang tidak membingungkan
 - Tools dan template yang langsung bisa dipakai
@@ -21,7 +21,7 @@ Kami mengejar **kejelasan**.
 
 ## ✦ Apa yang Kami Bangun
 
-Neura Digital mengembangkan:
+Simpul Nalar mengembangkan:
 - Produk digital berbasis edukasi
 - Tools & template untuk produktivitas digital
 - Resource yang membantu proses belajar dan membangun sesuatu dengan lebih terstruktur
@@ -43,16 +43,16 @@ Kami percaya bahwa berpikir jernih adalah fondasi dari produk digital yang berke
 
 ## ✦ Status Proyek
 
-Neura Digital masih dalam tahap pengembangan dan validasi.  
+Simpul Nalar masih dalam tahap pengembangan dan validasi.  
 Beberapa bagian akan terus berkembang seiring waktu, sejalan dengan kebutuhan pengguna dan arah produk.
 
 ---
 
 ## ✦ Catatan
 
-Repository ini merepresentasikan bagian dari ekosistem Neura Digital.  
+Repository ini merepresentasikan bagian dari ekosistem Simpul Nalar.  
 Konten dan struktur di dalamnya dapat berubah tanpa pemberitahuan sebagai bagian dari proses iterasi.
 
 ---
 
-© Neura Digital  
+© Simpul Nalar  

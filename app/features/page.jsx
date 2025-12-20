@@ -22,7 +22,7 @@ export default function FeaturesPage() {
                             Keunggulan Kami
                         </h1>
                         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                            Mengapa ribuan orang memilih Neura Digital sebagai partner produktivitas mereka.
+                            Mengapa ribuan orang memilih Simpul Nalar sebagai partner produktivitas mereka.
                         </p>
                     </div>
 

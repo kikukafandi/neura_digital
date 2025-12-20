@@ -6,7 +6,7 @@ const WhyUsSection = () => {
         <section id="about" className={`${sectionPadding} bg-white relative`}>
             <div className="mx-auto max-w-5xl rounded-3xl bg-[#F8FAFC] p-8 md:p-16 border border-gray-100">
                 <div className="text-center">
-                    <h2 className="text-3xl font-bold text-[#0A2540] mb-6">Filosofi Neura</h2>
+                    <h2 className="text-3xl font-bold text-[#0A2540] mb-6">Filosofi Simpul Nalar</h2>
                     <div className="space-y-6 text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
                         <p>
                             Kami percaya bahwa <strong>produktivitas bukan tentang melakukan lebih banyak hal</strong>,

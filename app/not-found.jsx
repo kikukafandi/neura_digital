@@ -55,7 +55,7 @@ export default function NotFound() {
 
             {/* Footer Minimalis */}
             <div className="absolute bottom-8 text-sm text-gray-400">
-                &copy; {new Date().getFullYear()} Neura Digital. Error Code: 404_NOT_FOUND
+                &copy; {new Date().getFullYear()} Simpul Nalar. Error Code: 404_NOT_FOUND
             </div>
         </div>
     );

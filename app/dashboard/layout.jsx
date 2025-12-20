@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }) {
             <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-[#0A2540] text-white shadow-xl transition-transform duration-300 ease-in-out">
                 <div className="flex h-16 items-center justify-center border-b border-white/10 px-6">
                     <Link href="/" className="text-xl font-bold tracking-tight">
-                        Neura Admin
+                        Node Admin
                     </Link>
                 </div>
 

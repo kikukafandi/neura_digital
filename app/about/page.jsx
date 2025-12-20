@@ -9,11 +9,11 @@ export default function AboutPage() {
             <main className="pt-32 pb-24 px-6 relative z-10">
                 <div className="mx-auto max-w-4xl text-center">
                     <h1 className="text-4xl md:text-5xl font-extrabold text-[#0A2540] mb-6">
-                        Tentang <span className="text-blue-600">Neura Digital</span>
+                        Tentang <span className="text-blue-600">Simpul Nalar</span>
                     </h1>
                     <p className="text-lg text-gray-600 leading-relaxed mb-16">
                         Kami adalah studio digital yang berfokus pada satu hal: <b>Mengubah kekacauan menjadi kejelasan.</b> 
-                         Neura Digital lahir dari frustrasi terhadap alat kerja yang terlalu rumit.
+                         Simpul Nalar lahir dari frustrasi terhadap alat kerja yang terlalu rumit.
                     </p>
 
                     <div className="grid md:grid-cols-3 gap-8 text-left">
