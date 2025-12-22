@@ -6,12 +6,14 @@ export const users = pgTable("user", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     name: text("name"),
     email: text("email").notNull().unique(),
-    password: text("password"), 
+    password: text("password"),
     emailVerified: timestamp("emailVerified", { mode: "date" }),
     image: text("image"),
-    role: text("role").default("user"), 
+    role: text("role").default("user"),
     plan: text("plan").default("free"),
     createdAt: timestamp("created_at").defaultNow(),
+    notionApiKey: text("notion_api_key"),
+    notionDbId: text("notion_db_id"),
 });
 // 2. TABEL ACCOUNTS
 export const accounts = pgTable(
@@ -85,4 +87,12 @@ export const products = pgTable("products", {
     imageUrl: text("image_url"),
     isPublished: boolean("is_published").default(true),
     createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const tasks = pgTable("task", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    isCompleted: boolean("isCompleted").default(false),
+    createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });

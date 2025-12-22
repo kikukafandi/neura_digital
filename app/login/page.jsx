@@ -67,7 +67,11 @@ export default async function LoginPage() {
                     <form
                         action={async (formData) => {
                             "use server";
-                            await signIn("credentials", formData);
+                            await signIn("credentials", {
+                                email: formData.get("email"),
+                                password: formData.get("password"),
+                                redirectTo: "/dashboard",
+                            });
                         }}
                         className="space-y-5"
                     >

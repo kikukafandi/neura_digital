@@ -1,293 +1,199 @@
-"use client";
-
-import { useEffect, useState, useMemo } from "react";
-import { createClient } from "@/utils/supabase/client";
-import { Users, Globe, Smartphone, Laptop, Activity, RefreshCw, Filter, ListFilter } from "lucide-react";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
 import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend
-} from 'recharts';
+    Package, Clock, Zap, CheckCircle2,
+    Database, ArrowRight, PlayCircle, TrendingUp
+} from "lucide-react";
 
-export default function Dashboard() {
-    // --- STATE ---
-    const [logs, setLogs] = useState([]);
-    const [stats, setStats] = useState({ total: 0, mobile: 0, desktop: 0 });
-    const [isRefreshing, setIsRefreshing] = useState(false);
+export default async function DashboardPage() {
+    const session = await auth();
+    if (!session) redirect("/login");
+    const user = session.user;
 
-    // State Filter & Limit Baru
-    const [rowLimit, setRowLimit] = useState(100); // Default ambil 100 data
-    const [startHour, setStartHour] = useState(0);   // Default jam 00:00
-    const [endHour, setEndHour] = useState(23);      // Default jam 23:00
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Selamat Pagi" : hour < 18 ? "Selamat Siang" : "Selamat Malam";
 
-    const supabase = createClient();
-
-    // --- FUNGSI FETCH DATA ---
-    // Kita masukkan rowLimit sebagai parameter atau ambil dari state
-    const fetchAnalytics = async () => {
-        setIsRefreshing(true);
-
-        const { data } = await supabase
-            .from('traffic_logs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(rowLimit); // Gunakan limit dinamis
-
-        if (data) {
-            processLogs(data);
-        }
-
-        setTimeout(() => setIsRefreshing(false), 500);
-    };
-
-    // --- USE EFFECT (Polling) ---
-    // Ditambahkan dependency [rowLimit] agar saat limit diganti, data langsung di-refresh
-    useEffect(() => {
-        fetchAnalytics();
-
-        const intervalId = setInterval(() => {
-            fetchAnalytics();
-        }, 5000);
-
-        return () => clearInterval(intervalId);
-    }, [rowLimit]);
-
-    // Helper hitung statistik
-    const processLogs = (data) => {
-        setLogs(data);
-        const mobile = data.filter(l => l.device_type === 'Mobile').length;
-        setStats({
-            total: data.length,
-            mobile: mobile,
-            desktop: data.length - mobile
-        });
-    };
-
-    // --- LOGIKA FILTER JAM (CLIENT SIDE) ---
-    // Kita filter 'logs' (data mentah) menjadi 'filteredLogs' (data tampil)
-    const filteredLogs = useMemo(() => {
-        return logs.filter(log => {
-            const logDate = new Date(log.created_at);
-            const logHour = logDate.getHours(); // Mengambil jam lokal (0-23)
-            return logHour >= startHour && logHour <= endHour;
-        });
-    }, [logs, startHour, endHour]);
-
-    // --- DATA GRAFIK (Menggunakan data MENTAH/logs agar statistik tetap global) ---
-    const deviceData = useMemo(() => [
-        { name: 'Mobile', value: stats.mobile },
-        { name: 'Desktop', value: stats.desktop },
-    ], [stats]);
-
-    const trendData = useMemo(() => {
-        const grouped = {};
-        logs.forEach(log => {
-            const date = new Date(log.created_at);
-            const timeLabel = `${date.getHours()}:00`;
-            grouped[timeLabel] = (grouped[timeLabel] || 0) + 1;
-        });
-        return Object.keys(grouped).map(key => ({
-            time: key,
-            visitors: grouped[key]
-        })).reverse();
-    }, [logs]);
+    const myProducts = [
+        { id: 1, name: "SaaS Starter Kit v2", type: "Source Code", date: "20 Des 2024", color: "bg-blue-600" },
+        { id: 2, name: "Ultimate Life Planner", type: "Notion Template", date: "18 Des 2024", color: "bg-slate-800" }
+    ];
 
     return (
-        <div className="p-6 bg-slate-50 min-h-screen">
-            {/* HEADER */}
-            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-6 lg:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+            {/* --- HERO SECTION (Responsive Flex) --- */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Traffic Analytics</h1>
-                    <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
-                        <RefreshCw size={14} className={isRefreshing ? "animate-spin text-blue-600" : "text-slate-400"} />
-                        {isRefreshing ? "Mengambil data..." : "Auto-refresh setiap 5 detik"}
+                    <h1 className="text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
+                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">{user.name?.split(' ')[0]}!</span> 👋
+                    </h1>
+                    <p className="text-slate-500 mt-2 text-sm lg:text-lg leading-relaxed">
+                        Fokus pada sistem, biarkan hasil mengikuti.
                     </p>
                 </div>
-
-                {/* TOOLBAR LIMIT (Database Fetch) */}
-                <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-                    <ListFilter size={16} className="text-slate-500 ml-2" />
-                    <span className="text-sm text-slate-600 font-medium">Ambil Data:</span>
-                    <select
-                        className="bg-slate-100 border-none text-sm rounded-md py-1 px-3 font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={rowLimit}
-                        onChange={(e) => setRowLimit(Number(e.target.value))}
-                    >
-                        <option value="50">50 Terakhir</option>
-                        <option value="100">100 Terakhir</option>
-                        <option value="500">500 Terakhir</option>
-                        <option value="1000">1000 Terakhir</option>
-                    </select>
+                <div className="w-full md:w-auto">
+                    <Link href="/dashboard/tasks" className="group bg-[#0A2540] hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-1 w-full md:w-auto">
+                        <Zap size={18} className="text-yellow-400 group-hover:animate-pulse" />
+                        Mulai Fokus
+                    </Link>
                 </div>
             </div>
 
-            {/* KARTU STATISTIK (Global) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 transition-all hover:-translate-y-1">
-                    <div className="p-4 bg-blue-50 rounded-xl text-blue-600"><Users size={28} /></div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500">Total Kunjungan</p>
-                        <p className="text-3xl font-bold text-slate-800">{stats.total}</p>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 transition-all hover:-translate-y-1">
-                    <div className="p-4 bg-emerald-50 rounded-xl text-emerald-600"><Smartphone size={28} /></div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500">Dari Mobile</p>
-                        <p className="text-3xl font-bold text-slate-800">{stats.mobile}</p>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 transition-all hover:-translate-y-1">
-                    <div className="p-4 bg-purple-50 rounded-xl text-purple-600"><Laptop size={28} /></div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500">Dari Desktop</p>
-                        <p className="text-3xl font-bold text-slate-800">{stats.desktop}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* GRAFIK */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><Activity size={18} /> Tren Trafik (Realtime)</h3>
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={trendData}>
-                                <defs>
-                                    <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#0A2540" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#0A2540" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="time" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                                <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                                <Area type="monotone" dataKey="visitors" stroke="#0A2540" fillOpacity={1} fill="url(#colorVisits)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                    <h3 className="font-bold text-slate-800 mb-2 w-full text-left">Perangkat</h3>
-                    <div className="h-[250px] w-full relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={deviceData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} fill="#8884d8" paddingAngle={5} dataKey="value">
-                                    <Cell key="mobile" fill="#10B981" />
-                                    <Cell key="desktop" fill="#8B5CF6" />
-                                </Pie>
-                                <Tooltip />
-                                <Legend verticalAlign="bottom" height={36} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-3xl font-bold text-slate-800">{stats.total}</span>
-                            <span className="text-xs text-slate-400">Kunjungan</span>
+            {/* --- STATS CARDS (Responsive Grid) --- */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+                {/* Card 1 */}
+                <div className="bg-white p-5 lg:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div className="relative z-10">
+                        <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-4">
+                            <Clock size={20} />
                         </div>
+                        <p className="text-slate-500 text-sm font-medium">Pending Tasks</p>
+                        <h3 className="text-2xl font-bold text-slate-800 mt-1">0 Tugas</h3>
+                        <p className="text-xs text-orange-400 mt-3 font-medium flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                            Sinkronisasi tertunda
+                        </p>
+                    </div>
+                </div>
+
+                {/* Card 2 */}
+                <div className="bg-white p-5 lg:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div className="relative z-10">
+                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center mb-4">
+                            <TrendingUp size={20} />
+                        </div>
+                        <p className="text-slate-500 text-sm font-medium">Produktivitas</p>
+                        <h3 className="text-2xl font-bold text-slate-800 mt-1">0%</h3>
+                        <p className="text-xs text-slate-400 mt-3">Belum ada data mingguan</p>
+                    </div>
+                </div>
+
+                {/* Card 3 */}
+                <div className="bg-white p-5 lg:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div className="relative z-10">
+                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-4">
+                            <Package size={20} />
+                        </div>
+                        <p className="text-slate-500 text-sm font-medium">Aset Dimiliki</p>
+                        <h3 className="text-2xl font-bold text-slate-800 mt-1">{myProducts.length} Item</h3>
+                        <Link href="/dashboard/library" className="text-xs text-blue-600 font-bold mt-3 inline-flex items-center gap-1 hover:underline">
+                            Lihat Library <ArrowRight size={12} />
+                        </Link>
                     </div>
                 </div>
             </div>
 
-            {/* TABEL LIVE LOG */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
+            {/* --- MAIN CONTENT SPLIT (Responsive Grid) --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
 
-                    {/* Judul & Status */}
-                    <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-slate-800">Log Aktivitas</h3>
-                        <div className={`px-2 py-1 rounded text-xs font-mono transition-colors ${isRefreshing ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-600"}`}>
-                            {isRefreshing ? "Syncing..." : "Live"}
+                {/* Kolom Kiri */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Banner Notion */}
+                    {!user.notionApiKey && (
+                        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+                            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-600 flex-shrink-0">
+                                <Database size={32} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-bold text-slate-800">Hubungkan Otak Kedua</h3>
+                                <p className="text-slate-500 text-sm mt-1">
+                                    Integrasikan Notion Database kamu agar sistem bisa membaca dan mengatur tugasmu secara otomatis.
+                                </p>
+                            </div>
+                            <Link href="/dashboard/settings" className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 transition shadow-md">
+                                Setup Integrasi
+                            </Link>
                         </div>
-                    </div>
+                    )}
 
-                    {/* TOOLBAR FILTER JAM (Client Side Filter) */}
-                    <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                        <div className="flex items-center gap-2 text-slate-600 text-sm">
-                            <Filter size={14} />
-                            <span className="font-bold text-xs uppercase">Filter Jam:</span>
+                    {/* Quick Access */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between px-1">
+                            <h3 className="font-bold text-slate-800 text-lg">Library Terbaru</h3>
+                            <Link href="/dashboard/library" className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                                Semua Aset
+                            </Link>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                min="0" max="23"
-                                value={startHour}
-                                onChange={(e) => setStartHour(Number(e.target.value))}
-                                className="w-12 text-center border rounded bg-slate-50 text-sm py-1 focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                            <span className="text-slate-400">-</span>
-                            <input
-                                type="number"
-                                min="0" max="23"
-                                value={endHour}
-                                onChange={(e) => setEndHour(Number(e.target.value))}
-                                className="w-12 text-center border rounded bg-slate-50 text-sm py-1 focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider">
-                            <tr>
-                                <th className="px-6 py-4">Waktu</th>
-                                <th className="px-6 py-4">Lokasi</th>
-                                <th className="px-6 py-4">Device</th>
-                                <th className="px-6 py-4">Halaman</th>
-                                <th className="px-6 py-4">IP</th>
-                                <th className="px-6 py-4">Sumber</th>
-                                <th className="px-6 py-4">Load (ms)</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {/* KITA MAPPING filteredLogs (BUKAN logs MENTAH) */}
-                            {filteredLogs.map((log) => (
-                                <tr key={log.id} className="hover:bg-blue-50/30 transition-colors">
-                                    <td className="px-6 py-4 text-slate-600 font-medium">
-                                        {new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <Globe size={14} className="text-slate-400" />
-                                            {log.city !== 'Unknown' ? `${log.city}, ${log.country}` : 'Unknown'}
+                        {myProducts.length > 0 ? (
+                            <div className="grid gap-4">
+                                {myProducts.map((item) => (
+                                    <div key={item.id} className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-4 w-full">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm flex-shrink-0 ${item.color}`}>
+                                                <Package size={20} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h4 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">{item.name}</h4>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full whitespace-nowrap">
+                                                        {item.type}
+                                                    </span>
+                                                    <span className="text-xs text-slate-400 whitespace-nowrap">• {item.date}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${log.device_type === 'Mobile' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'
-                                            }`}>
-                                            {log.device_type === 'Mobile' ? <Smartphone size={12} /> : <Laptop size={12} />}
-                                            {log.device_type}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-600 font-mono text-xs bg-slate-50 rounded w-fit px-2">
-                                        {log.path_url}
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-400 font-mono text-xs">{log.ip_address}</td>
+                                        <button className="hidden sm:flex w-8 h-8 rounded-lg bg-slate-50 items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                            <ArrowRight size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-slate-50 rounded-2xl p-8 text-center border border-dashed border-slate-300">
+                                <p className="text-slate-500 text-sm">Belum ada aset digital.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-                                    <td className="px-6 py-4 text-xs text-slate-500 max-w-[150px] truncate" title={log.referrer}>
-                                        {log.referrer === 'Direct' ? 'Langsung' : (log.referrer || '-').replace('https://', '').replace('http://', '').split('/')[0]}
-                                    </td>
+                {/* Kolom Kanan */}
+                <div className="space-y-6">
+                    {/* Widget Course */}
+                    <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-125"></div>
+                        <div className="relative z-10">
+                            <span className="inline-block px-2 py-1 bg-white/20 rounded-md text-[10px] font-bold uppercase tracking-wider mb-3 backdrop-blur-sm">
+                                Academy
+                            </span>
+                            <h3 className="text-lg font-bold mb-2">Computational Thinking</h3>
+                            <p className="text-blue-100 text-xs mb-4 leading-relaxed opacity-90">
+                                Pelajari cara memecah masalah besar menjadi langkah kecil yang logis.
+                            </p>
+                            <button className="w-full py-2.5 bg-white text-blue-700 font-bold text-xs rounded-lg hover:bg-blue-50 transition flex items-center justify-center gap-2">
+                                <PlayCircle size={14} /> Tonton Materi
+                            </button>
+                        </div>
+                    </div>
 
-                                    <td className="px-6 py-4 text-xs font-mono">
-                                        <span className={log.duration > 800 ? "text-red-500 font-bold" : "text-green-600"}>
-                                            {log.duration ? `${log.duration}ms` : '-'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredLogs.length === 0 && (
-                                <tr>
-                                    <td colSpan="7" className="px-6 py-12 text-center text-slate-400">
-                                        Tidak ada data pada rentang jam {startHour}:00 - {endHour}:59
-                                        <br />
-                                        <span className="text-xs text-slate-300">(Total Data Mentah: {logs.length})</span>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                    {/* Widget Status Langganan */}
+                    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-slate-800 text-sm">Langganan</h3>
+                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${user.plan === 'pro' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                                {user.plan} Plan
+                            </span>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-xs text-slate-600">
+                                <CheckCircle2 size={14} className="text-green-500" />
+                                <span>Akses Dashboard System</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-slate-600">
+                                <CheckCircle2 size={14} className={user.plan === 'pro' ? "text-green-500" : "text-slate-300"} />
+                                <span className={user.plan === 'pro' ? "" : "text-slate-400"}>Unlimited Notion Sync</span>
+                            </div>
+                        </div>
+                        {user.plan === 'free' && (
+                            <button className="mt-4 w-full py-2 border border-slate-900 text-slate-900 font-bold text-xs rounded-lg hover:bg-slate-900 hover:text-white transition">
+                                Upgrade Pro
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { products, users } from "@/db/schema";
+import { products, users,tasks } from "@/db/schema";
 import { revalidatePath } from "next/cache";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and} from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { auth, signIn, signOut } from "@/auth";
 
 export async function addProduct(formData) {
     const name = formData.get("name");
@@ -108,4 +109,116 @@ export async function registerUser(formData) {
         console.error("Register Error:", error);
         return { error: "Terjadi kesalahan server. Coba lagi nanti." };
     }
+}
+
+export async function logout() {
+    await signOut({ redirectTo: "/login" });
+}
+
+export async function updateNotionSettings(formData) {
+    const session = await auth();
+    if (!session) return { error: "Harus login dulu!" };
+
+    const apiKey = formData.get("apiKey");
+    const dbId = formData.get("dbId");
+
+    try {
+        await db.update(users)
+            .set({
+                notionApiKey: apiKey,
+                notionDbId: dbId
+            })
+            .where(eq(users.id, session.user.id));
+
+        revalidatePath("/dashboard/settings");
+        return { success: "Integrasi Notion berhasil disimpan!" };
+    } catch (error) {
+        console.error("Gagal update settings:", error);
+        return { error: "Terjadi kesalahan sistem." };
+    }
+}
+
+// --- FEATURE: CHANGE PASSWORD ---
+export async function changePassword(formData) {
+    const session = await auth();
+    if (!session) return { error: "Unauthorized" };
+
+    const oldPassword = formData.get("oldPassword");
+    const newPassword = formData.get("newPassword");
+
+    if (!oldPassword || !newPassword) return { error: "Semua kolom wajib diisi." };
+    if (newPassword.length < 8) return { error: "Password baru minimal 8 karakter." };
+
+    try {
+        // 1. Ambil user & password lama dari DB
+        const user = await db.query.users.findFirst({
+            where: eq(users.id, session.user.id),
+        });
+
+        if (!user || !user.password) return { error: "User tidak ditemukan." };
+
+        // 2. Cek Password Lama
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) return { error: "Password lama salah." };
+
+        // 3. Hash Password Baru & Simpan
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await db.update(users)
+            .set({ password: hashedPassword })
+            .where(eq(users.id, session.user.id));
+
+        return { success: "Password berhasil diubah!" };
+    } catch (err) {
+        console.error(err);
+        return { error: "Gagal mengubah password." };
+    }
+}
+
+// --- FEATURE: TASK SYSTEM (ATOMIZER) ---
+export async function addTask(formData) {
+    const session = await auth();
+    if (!session) return { error: "Unauthorized" };
+
+    const content = formData.get("content");
+    if (!content) return;
+
+    // Sekarang 'tasks' sudah dikenali karena sudah di-import di atas
+    await db.insert(tasks).values({
+        userId: session.user.id,
+        content: content
+    });
+    revalidatePath("/dashboard/tasks");
+    revalidatePath("/dashboard");
+}
+
+export async function toggleTask(taskId, currentState) {
+    const session = await auth();
+    if (!session) return;
+
+    await db.update(tasks)
+        .set({ isCompleted: !currentState })
+        .where(and(eq(tasks.id, taskId), eq(tasks.userId, session.user.id)));
+
+    revalidatePath("/dashboard/tasks");
+    revalidatePath("/dashboard");
+}
+
+export async function deleteTask(taskId) {
+    const session = await auth();
+    if (!session) return;
+
+    await db.delete(tasks)
+        .where(and(eq(tasks.id, taskId), eq(tasks.userId, session.user.id)));
+
+    revalidatePath("/dashboard/tasks");
+    revalidatePath("/dashboard");
+}
+
+export async function getTasks() {
+    const session = await auth();
+    if (!session) return [];
+
+    return await db.select().from(tasks)
+        .where(eq(tasks.userId, session.user.id))
+        .orderBy(desc(tasks.createdAt));
 }
