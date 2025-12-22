@@ -96,3 +96,11 @@ export const tasks = pgTable("task", {
     isCompleted: boolean("isCompleted").default(false),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });
+
+export const subtasks = pgTable("subtask", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    taskId: text("taskId").notNull().references(() => tasks.id, { onDelete: "cascade" }), // Relasi ke Parent Task
+    content: text("content").notNull(),
+    isCompleted: boolean("isCompleted").default(false),
+    createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
+});

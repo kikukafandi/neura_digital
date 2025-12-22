@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { products, users,tasks } from "@/db/schema";
+import { products, users, tasks,subtasks } from "@/db/schema";
 import { revalidatePath } from "next/cache";
-import { desc, eq, and} from "drizzle-orm";
+import { desc, eq, and,asc } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth, signIn, signOut } from "@/auth";
 
@@ -137,7 +137,31 @@ export async function updateNotionSettings(formData) {
         return { error: "Terjadi kesalahan sistem." };
     }
 }
+export async function updateProfile(formData) {
+    const session = await auth();
+    if (!session) return { error: "Unauthorized" };
 
+    const name = formData.get("name");
+    const image = formData.get("image"); 
+
+    if (!name) return { error: "Nama tidak boleh kosong." };
+
+    try {
+        await db.update(users)
+            .set({
+                name: name,
+                image: image
+            })
+            .where(eq(users.id, session.user.id));
+
+        revalidatePath("/dashboard/settings");
+        revalidatePath("/dashboard");
+        return { success: "Profil berhasil diperbarui!" };
+    } catch (error) {
+        console.error("Update Profile Error:", error);
+        return { error: "Gagal menyimpan profil." };
+    }
+}
 // --- FEATURE: CHANGE PASSWORD ---
 export async function changePassword(formData) {
     const session = await auth();
@@ -221,4 +245,44 @@ export async function getTasks() {
     return await db.select().from(tasks)
         .where(eq(tasks.userId, session.user.id))
         .orderBy(desc(tasks.createdAt));
+}
+
+// --- FEATURE: SUBTASKS ---
+export async function getSubtasks(taskId) {
+    const session = await auth();
+    if (!session) return [];
+    
+    return await db.select().from(subtasks)
+        .where(eq(subtasks.taskId, taskId))
+        .orderBy(asc(subtasks.createdAt));
+}
+
+export async function addSubtask(taskId, content) {
+    const session = await auth();
+    if (!session || !content) return;
+
+    await db.insert(subtasks).values({
+        taskId: taskId,
+        content: content
+    });
+    revalidatePath("/dashboard/tasks");
+}
+
+export async function toggleSubtask(subtaskId, currentState) {
+    const session = await auth();
+    if (!session) return;
+
+    await db.update(subtasks)
+        .set({ isCompleted: !currentState })
+        .where(eq(subtasks.id, subtaskId));
+    
+    revalidatePath("/dashboard/tasks");
+}
+
+export async function deleteSubtask(subtaskId) {
+    const session = await auth();
+    if (!session) return;
+
+    await db.delete(subtasks).where(eq(subtasks.id, subtaskId));
+    revalidatePath("/dashboard/tasks");
 }
