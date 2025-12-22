@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { getProducts } from "@/app/actions"; 
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
-import { ExternalLink, Search, Filter } from "lucide-react";
-import Link from "next/link"; // Jangan lupa import Link
+import { ExternalLink, Search } from "lucide-react";
+import Link from "next/link";
 
-// --- Styles ---
+// --- Styles (Tetap Sama) ---
 const customStyles = `
   @keyframes fade-in-up {
     0% { opacity: 0; transform: translateY(20px); }
@@ -27,30 +27,26 @@ const glassCardClass =
     "bg-white/70 backdrop-blur-xl border border-white/50 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-white/90";
 
 export default function ProductsPage() {
-    const supabase = createClient();
+    // State Management
     const [allProducts, setAllProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [activeCategory, setActiveCategory] = useState("Semua");
     const [isLoading, setIsLoading] = useState(true);
 
-    // Fetch Data dari Supabase
+    // FETCH DATA DARI SERVER ACTION (Pengganti Supabase)
     useEffect(() => {
         const fetchAllProducts = async () => {
             setIsLoading(true);
             try {
-                const { data, error } = await supabase
-                    .from('products')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
+                // Panggil fungsi Server Action
+                const data = await getProducts();
 
                 if (data) {
                     setAllProducts(data);
                     setFilteredProducts(data);
                 }
             } catch (err) {
-                console.error("Error:", err);
+                console.error("Error fetching products:", err);
             } finally {
                 setIsLoading(false);
             }
@@ -68,7 +64,7 @@ export default function ProductsPage() {
         }
     }, [activeCategory, allProducts]);
 
-    // Ambil Kategori Unik dari Data
+    // Ambil Kategori Unik
     const categories = ["Semua", ...new Set(allProducts.map((p) => p.category).filter(Boolean))];
 
     return (
@@ -76,7 +72,6 @@ export default function ProductsPage() {
             <style jsx global>{customStyles}</style>
 
             <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans relative overflow-x-hidden">
-
                 {/* Background */}
                 <div className="fixed inset-0 z-0 pointer-events-none">
                     <div className="absolute inset-0 bg-grid-pattern opacity-[0.6]"></div>
@@ -88,7 +83,6 @@ export default function ProductsPage() {
 
                 <main className="relative z-10 pt-32 pb-24 px-6">
                     <div className="mx-auto max-w-6xl">
-
                         {/* Header */}
                         <div className="text-center mb-16">
                             <span className="inline-block py-1 px-3 rounded-full bg-blue-100/50 text-blue-700 text-xs font-bold tracking-wide mb-4 border border-blue-200 animate-enter opacity-0">
@@ -127,20 +121,19 @@ export default function ProductsPage() {
                             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 animate-enter delay-300 opacity-0">
                                 {filteredProducts.length > 0 ? (
                                     filteredProducts.map((product) => (
-                                        // PERBAIKAN 1: Gunakan 'div' sebagai pembungkus utama (bukan Link)
                                         <div key={product.id} className={`${glassCardClass} flex flex-col group h-full relative`}>
 
-                                            {/* PERBAIKAN 2: Bungkus Gambar dengan Link ke detail */}
-                                            <Link href={`/products/${product.slug}`} className="block h-56 w-full bg-gray-50 relative overflow-hidden rounded-t-2xl flex items-center justify-center cursor-pointer">
+                                            {/* Link Gambar */}
+                                            {/* NOTE: Pastikan product.slug ada, kalau null pakai id */}
+                                            <Link href={`/products/${product.slug || product.id}`} className="block h-56 w-full bg-gray-50 relative overflow-hidden rounded-t-2xl flex items-center justify-center cursor-pointer">
                                                 <div className="absolute top-4 left-4 z-10">
                                                     <span className="px-3 py-1 bg-white/90 backdrop-blur-md text-[#0A2540] text-xs font-bold rounded-full shadow-sm">
                                                         {product.category}
                                                     </span>
                                                 </div>
-
-                                                {product.image_url ? (
+                                                {product.imageUrl ? ( // Perhatikan: Schema Anda pakai 'imageUrl' (camelCase)
                                                     <img
-                                                        src={product.image_url}
+                                                        src={product.imageUrl}
                                                         alt={product.name}
                                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                                     />
@@ -154,35 +147,29 @@ export default function ProductsPage() {
                                             {/* Content Area */}
                                             <div className="p-6 flex flex-col flex-grow">
                                                 <div className="mb-2">
-                                                    {/* PERBAIKAN 3: Bungkus Judul dengan Link ke detail */}
-                                                    <Link href={`/products/${product.slug}`} className="cursor-pointer">
+                                                    <Link href={`/products/${product.slug || product.id}`} className="cursor-pointer">
                                                         <h3 className="text-xl font-bold text-[#0A2540] leading-tight group-hover:text-blue-700 transition-colors">
                                                             {product.name}
                                                         </h3>
                                                     </Link>
                                                 </div>
 
-                                                {product.description && (
-                                                    <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-grow line-clamp-3">
-                                                        {product.short_description || product.description || "Tingkatkan produktivitas Anda dengan alat digital premium ini."}
-                                                    </p>
-                                                )}
+                                                <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-grow line-clamp-3">
+                                                    {product.description || "Tingkatkan produktivitas Anda dengan alat digital premium ini."}
+                                                </p>
 
                                                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
                                                     <span className="text-lg font-bold text-[#0A2540]">
                                                         {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(product.price)}
                                                     </span>
 
-                                                    {/* Tombol Beli (Tag <a> Terpisah, Aman dari nesting error) */}
-                                                    <a
-                                                        href={product.checkout_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
+                                                    <Link
+                                                        href={`/products/${product.slug || product.id}`}
                                                         className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-blue-50 text-blue-700 text-sm font-bold transition-all hover:bg-blue-600 hover:text-white"
                                                     >
-                                                        Beli
+                                                        Detail
                                                         <ExternalLink className="ml-1.5 w-4 h-4" />
-                                                    </a>
+                                                    </Link>
                                                 </div>
                                             </div>
                                         </div>
@@ -196,10 +183,7 @@ export default function ProductsPage() {
                         )}
                     </div>
                 </main>
-
-                <div className="relative z-10">
-                    <Footer />
-                </div>
+                <div className="relative z-10"><Footer /></div>
             </div>
         </>
     );
