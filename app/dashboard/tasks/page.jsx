@@ -1,320 +1,365 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
-    addTask, getTasks, toggleTask, deleteTask,
-    getSubtasks, addSubtask, toggleSubtask, deleteSubtask
-} from "@/app/actions";
-import {
-    Plus, CheckCircle2, Circle, Trash2, Loader2, Zap,
-    AlertTriangle, X, ChevronRight, LayoutList, GripVertical
+    Sparkles, ArrowRight, CheckCircle2, Loader2, Plus, Trash2,
+    BrainCircuit, Save, LayoutList, X, Play, Timer, Trophy, Flame
 } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
+import { saveAtomizedTask, getUserTasks, toggleSubtask } from "@/app/actions";
 
-export default function TasksPage() {
-    const [tasks, setTasks] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isAdding, setIsAdding] = useState(false);
+// --- KOMPONEN KECIL: FOCUS TIMER (INOVASI) ---
+function FocusTimer({ task, onClose, onComplete }) {
+    const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 Menit (Pomodoro)
+    const [isActive, setIsActive] = useState(false);
 
-    // State Modal Delete Task
-    const [taskToDelete, setTaskToDelete] = useState(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    // STATE ATOMIZER (Drawer)
-    const [activeTask, setActiveTask] = useState(null); // Tugas yang sedang dibuka detailnya
-    const [subtasks, setSubtasks] = useState([]);
-    const [isLoadingSub, setIsLoadingSub] = useState(false);
-
-    // Initial Load
     useEffect(() => {
-        loadTasks();
-    }, []);
-
-    // Load Subtasks ketika activeTask berubah
-    useEffect(() => {
-        if (activeTask) {
-            loadSubtasks(activeTask.id);
-        } else {
-            setSubtasks([]);
+        let interval = null;
+        if (isActive && timeLeft > 0) {
+            interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+        } else if (timeLeft === 0) {
+            setIsActive(false);
+            onComplete(); // Auto complete saat waktu habis
         }
-    }, [activeTask]);
+        return () => clearInterval(interval);
+    }, [isActive, timeLeft, onComplete]);
 
-    async function loadTasks() {
-        const data = await getTasks();
-        setTasks(data);
-        setIsLoading(false);
-    }
-
-    async function loadSubtasks(taskId) {
-        setIsLoadingSub(true);
-        const data = await getSubtasks(taskId);
-        setSubtasks(data);
-        setIsLoadingSub(false);
-    }
-
-    // --- HANDLERS MAIN TASKS ---
-    async function handleAdd(formData) {
-        setIsAdding(true);
-        await addTask(formData);
-        document.getElementById("taskForm").reset();
-        await loadTasks();
-        setIsAdding(false);
-        toast.success("Tugas induk dibuat");
-    }
-
-    async function handleToggle(id, currentStatus) {
-        setTasks(tasks.map(t => t.id === id ? { ...t, isCompleted: !currentStatus } : t));
-        await toggleTask(id, currentStatus);
-    }
-
-    async function confirmDelete() {
-        if (!taskToDelete) return;
-        setIsDeleting(true);
-        const previousTasks = [...tasks];
-        setTasks(tasks.filter(t => t.id !== taskToDelete));
-        try {
-            await deleteTask(taskToDelete);
-            toast.success("Tugas dimusnahkan");
-            if (activeTask?.id === taskToDelete) setActiveTask(null); // Tutup drawer jika task yg dibuka dihapus
-        } catch (error) {
-            setTasks(previousTasks);
-            toast.error("Gagal hapus");
-        } finally {
-            setIsDeleting(false);
-            setTaskToDelete(null);
-        }
-    }
-
-    // --- HANDLERS SUBTASKS ---
-    async function handleAddSubtask(formData) {
-        if (!activeTask) return;
-        const content = formData.get("content");
-        if (!content) return;
-
-        // Optimistic UI
-        const tempId = Math.random().toString();
-        const newSub = { id: tempId, content, isCompleted: false, taskId: activeTask.id };
-        setSubtasks([...subtasks, newSub]);
-
-        await addSubtask(activeTask.id, content);
-        document.getElementById("subtaskForm").reset();
-        await loadSubtasks(activeTask.id); // Refresh ID asli dari server
-    }
-
-    async function handleToggleSub(id, currentStatus) {
-        setSubtasks(subtasks.map(s => s.id === id ? { ...s, isCompleted: !currentStatus } : s));
-        await toggleSubtask(id, currentStatus);
-    }
-
-    async function handleDeleteSub(id) {
-        setSubtasks(subtasks.filter(s => s.id !== id));
-        await deleteSubtask(id);
-    }
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     return (
-        <div className="max-w-4xl mx-auto pb-20 relative min-h-screen">
-            <Toaster position="top-center" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A2540]/95 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="text-center text-white max-w-md w-full p-6">
+                <div className="mb-8">
+                    <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-blue-200 text-xs font-bold uppercase tracking-widest mb-4">
+                        Focus Mode
+                    </span>
+                    <h2 className="text-2xl font-bold leading-relaxed">{task?.content || "Fokus Mengerjakan Tugas"}</h2>
+                </div>
 
-            {/* Header */}
-            <div className="mb-6 animate-in fade-in slide-in-from-top-2">
-                <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                    <Zap className="text-yellow-500 fill-yellow-500" /> The Atomizer
-                </h1>
-                <p className="text-slate-500 text-sm mt-1">Pecah masalah besar menjadi langkah-langkah logis (Atomic Steps).</p>
-            </div>
+                {/* TIMER DISPLAY */}
+                <div className="text-8xl font-mono font-bold tracking-tighter mb-8 tabular-nums">
+                    {formatTime(timeLeft)}
+                </div>
 
-            {/* Input Bar */}
-            <div className="bg-white p-2 rounded-2xl shadow-lg border border-slate-100 sticky top-4 z-20 mb-6 animate-in zoom-in-95 duration-300">
-                <form id="taskForm" action={handleAdd} className="flex gap-2">
-                    <input
-                        name="content"
-                        required
-                        autoComplete="off"
-                        placeholder="Tulis gol besar Anda di sini..."
-                        className="flex-1 px-4 py-3 bg-transparent outline-none text-slate-700 placeholder:text-slate-400 font-medium"
-                    />
+                {/* CONTROLS */}
+                <div className="flex justify-center gap-4 mb-10">
                     <button
-                        disabled={isAdding}
-                        className="bg-[#0A2540] text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition disabled:opacity-70 flex items-center gap-2 shadow-lg shadow-blue-900/10"
+                        onClick={() => setIsActive(!isActive)}
+                        className={`w-16 h-16 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${isActive ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'}`}
                     >
-                        {isAdding ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-                        <span className="hidden sm:inline">Target</span>
+                        {isActive ? <span className="font-bold text-xs">PAUSE</span> : <Play fill="currentColor" className="ml-1" />}
                     </button>
-                </form>
-            </div>
+                    <button
+                        onClick={onClose}
+                        className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all text-white/70 hover:text-white"
+                    >
+                        <X />
+                    </button>
+                </div>
 
-            {/* Task List */}
-            <div className="space-y-3">
-                {isLoading ? (
-                    <div className="flex justify-center py-10"><Loader2 className="animate-spin text-slate-300" /></div>
-                ) : tasks.length === 0 ? (
-                    <div className="text-center py-16 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
-                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-slate-300">
-                            <LayoutList size={24} />
-                        </div>
-                        <p className="text-slate-600 font-bold">Workspace Kosong</p>
-                        <p className="text-xs text-slate-400 mt-1">Definisikan target pertama Anda.</p>
+                <p className="text-white/40 text-sm">Jangan keluar sebelum timer habis. <br />Kalahkan kemalasanmu!</p>
+            </div>
+        </div>
+    );
+}
+
+// --- HALAMAN UTAMA ---
+export default function TasksPage() {
+    const [activeTab, setActiveTab] = useState("list"); // Default ke list biar langsung action
+    const [input, setInput] = useState("");
+    const [status, setStatus] = useState("idle");
+    const [generatedSubtasks, setGeneratedSubtasks] = useState([]);
+    const [myTasks, setMyTasks] = useState([]);
+
+    // UI States
+    const [isAddingManual, setIsAddingManual] = useState(false);
+    const [manualInput, setManualInput] = useState("");
+    const manualInputRef = useRef(null);
+
+    // Focus Mode State
+    const [focusTask, setFocusTask] = useState(null); // Task yang sedang dikerjakan
+    const [showConfetti, setShowConfetti] = useState(false);
+
+    useEffect(() => { loadTasks(); }, []);
+    useEffect(() => { if (isAddingManual && manualInputRef.current) manualInputRef.current.focus(); }, [isAddingManual]);
+
+    async function loadTasks() {
+        const data = await getUserTasks();
+        setMyTasks(data);
+    }
+
+    // --- GAMIFIKASI LOGIC ---
+    // Hitung progress harian sederhana
+    const totalSubtasks = myTasks.reduce((acc, t) => acc + t.subtasks.length, 0);
+    const completedSubtasks = myTasks.reduce((acc, t) => acc + t.subtasks.filter(s => s.isCompleted).length, 0);
+    const progressPercentage = totalSubtasks === 0 ? 0 : Math.round((completedSubtasks / totalSubtasks) * 100);
+    const dailyLevel = Math.floor(completedSubtasks / 5) + 1; // Naik level tiap 5 tugas selesai
+
+    // --- HANDLERS ---
+    const handleAtomize = async (e) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+        setStatus("thinking");
+        try {
+            const res = await fetch("/api/ai/atomizer", { method: "POST", body: JSON.stringify({ content: input }) });
+            const data = await res.json();
+            setGeneratedSubtasks(data.subtasks);
+            setStatus("review");
+        } catch (error) { setStatus("idle"); alert("Gagal koneksi AI."); }
+    };
+
+    const handleSave = async () => {
+        setStatus("saving");
+        const res = await saveAtomizedTask(input, generatedSubtasks);
+        if (res.success) {
+            setStatus("success");
+            await loadTasks();
+            setTimeout(() => { setInput(""); setGeneratedSubtasks([]); setStatus("idle"); setActiveTab("list"); }, 1000);
+        } else { alert("Gagal menyimpan."); setStatus("review"); }
+    };
+
+    const handleCheck = async (subtaskId, currentStatus) => {
+        // Optimistic Update
+        setMyTasks(prev => prev.map(t => ({
+            ...t, subtasks: t.subtasks.map(s => s.id === subtaskId ? { ...s, isCompleted: !currentStatus } : s)
+        })));
+
+        if (!currentStatus) triggerConfetti(); // Efek kalau centang selesai
+        await toggleSubtask(subtaskId, currentStatus);
+    };
+
+    const triggerConfetti = () => {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 2000);
+    };
+
+    // --- RENDER ---
+    return (
+        <div className="relative min-h-screen pb-20">
+
+            {/* FOCUS TIMER OVERLAY */}
+            {focusTask && (
+                <FocusTimer
+                    task={focusTask}
+                    onClose={() => setFocusTask(null)}
+                    onComplete={() => {
+                        setFocusTask(null);
+                        triggerConfetti();
+                        // Opsional: Tandai tugas selesai otomatis di sini
+                    }}
+                />
+            )}
+
+            {/* CONFETTI EFFECT (CSS Only for lightweight) */}
+            {showConfetti && (
+                <div className="fixed inset-0 z-[60] pointer-events-none flex justify-center items-start pt-20">
+                    <div className="text-6xl animate-bounce">🎉</div>
+                </div>
+            )}
+
+            {/* --- HEADER: STATS BAR (GAMIFIKASI) --- */}
+            <div className="sticky top-0 z-30 bg-[#F3F4F6]/80 backdrop-blur-md pt-4 pb-2 px-4 mb-6 border-b border-slate-200/50">
+                <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                            <BrainCircuit className="text-blue-600" /> Command Center
+                        </h1>
+                        <p className="text-slate-500 text-xs font-medium">Atur chaos, eksekusi fokus.</p>
                     </div>
-                ) : (
-                    tasks.map((task) => (
-                        <div
-                            key={task.id}
-                            onClick={(e) => {
-                                // Jangan buka drawer kalau user klik tombol check/delete
-                                if (!e.target.closest('button')) setActiveTask(task);
-                            }}
-                            className={`group relative overflow-hidden flex items-center justify-between p-4 bg-white rounded-2xl border transition-all duration-300 cursor-pointer ${task.isCompleted
-                                    ? "border-slate-100 bg-slate-50/50 opacity-60"
-                                    : activeTask?.id === task.id
-                                        ? "border-blue-500 shadow-md ring-1 ring-blue-500 bg-blue-50/30"
-                                        : "border-slate-200 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5"
-                                }`}
-                        >
-                            <div className="flex items-center gap-4 flex-1">
-                                <button onClick={() => handleToggle(task.id, task.isCompleted)} className={`z-10 transition-all duration-300 transform active:scale-90 ${task.isCompleted ? "text-green-500" : "text-slate-300 hover:text-blue-500"}`}>
-                                    {task.isCompleted ? <CheckCircle2 size={26} fill="#dcfce7" /> : <Circle size={26} />}
-                                </button>
 
-                                <div className="flex-1">
-                                    <span className={`font-medium text-base block ${task.isCompleted ? "text-slate-400 line-through" : "text-slate-800"}`}>
-                                        {task.content}
-                                    </span>
-                                    {/* Indikator "Klik untuk detail" */}
-                                    {!task.isCompleted && (
-                                        <p className="text-[10px] text-blue-500 font-medium mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                                            Klik untuk memecah tugas <ChevronRight size={10} />
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => setTaskToDelete(task.id)}
-                                className="z-10 text-slate-300 hover:text-red-500 p-2.5 rounded-xl hover:bg-red-50 transition opacity-0 group-hover:opacity-100 focus:opacity-100"
-                            >
-                                <Trash2 size={18} />
-                            </button>
-
-                            {/* Active Indicator Bar */}
-                            {activeTask?.id === task.id && (
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-2xl"></div>
-                            )}
+                    {/* XP WIDGET */}
+                    <div className="bg-white p-2 pr-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                        <div className="bg-gradient-to-tr from-amber-400 to-orange-500 w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+                            <Trophy size={18} fill="currentColor" />
                         </div>
-                    ))
-                )}
-            </div>
-
-            {/* --- ATOMIZER DRAWER (PANEL SAMPING) --- */}
-            {/* Backdrop Gelap untuk Mobile */}
-            <div
-                className={`fixed inset-0 bg-black/20 z-30 transition-opacity duration-300 lg:hidden ${activeTask ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-                onClick={() => setActiveTask(null)}
-            ></div>
-
-            {/* Panel Content */}
-            <div className={`fixed inset-y-0 right-0 z-40 w-full lg:w-[450px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-slate-100 ${activeTask ? "translate-x-0" : "translate-x-full"}`}>
-                {activeTask && (
-                    <div className="h-full flex flex-col">
-                        {/* Drawer Header */}
-                        <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
-                            <div>
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Atomizer Mode</h3>
-                                <h2 className="text-xl font-bold text-slate-800 leading-tight">{activeTask.content}</h2>
+                        <div>
+                            <div className="flex justify-between text-[10px] font-bold uppercase text-slate-400 mb-1">
+                                <span>Level {dailyLevel}</span>
+                                <span>{progressPercentage}% Harian</span>
                             </div>
-                            <button onClick={() => setActiveTask(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 transition">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        {/* Drawer Body (Scrollable) */}
-                        <div className="flex-1 overflow-y-auto p-6 bg-[#FAFAFA]">
-                            <div className="space-y-6">
-                                {/* Input Subtask */}
-                                <form id="subtaskForm" action={handleAddSubtask} className="flex gap-2">
-                                    <input
-                                        name="content"
-                                        required
-                                        autoComplete="off"
-                                        placeholder="Tambah langkah kecil..."
-                                        className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 text-sm shadow-sm"
-                                    />
-                                    <button className="bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-600 text-slate-600 px-4 py-2 rounded-xl transition shadow-sm">
-                                        <Plus size={20} />
-                                    </button>
-                                </form>
-
-                                {/* Subtask List */}
-                                <div className="space-y-2">
-                                    {isLoadingSub ? (
-                                        <div className="py-4 text-center"><Loader2 className="animate-spin inline text-slate-300" /></div>
-                                    ) : subtasks.length === 0 ? (
-                                        <div className="text-center py-8 opacity-50">
-                                            <p className="text-sm text-slate-500">Belum ada langkah kecil.</p>
-                                        </div>
-                                    ) : (
-                                        subtasks.map((sub) => (
-                                            <div key={sub.id} className="group flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-all">
-                                                <GripVertical size={16} className="text-slate-200 cursor-move" />
-                                                <button
-                                                    onClick={() => handleToggleSub(sub.id, sub.isCompleted)}
-                                                    className={`transition-colors ${sub.isCompleted ? "text-blue-500" : "text-slate-300 hover:text-blue-500"}`}
-                                                >
-                                                    {sub.isCompleted ? <CheckCircle2 size={20} /> : <Circle size={20} />}
-                                                </button>
-                                                <span className={`flex-1 text-sm ${sub.isCompleted ? "text-slate-400 line-through" : "text-slate-700"}`}>
-                                                    {sub.content}
-                                                </span>
-                                                <button
-                                                    onClick={() => handleDeleteSub(sub.id)}
-                                                    className="text-slate-200 hover:text-red-500 transition"
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Drawer Footer (Progress) */}
-                        <div className="p-4 border-t border-slate-100 bg-white">
-                            <div className="flex justify-between text-xs text-slate-500 mb-2 font-bold">
-                                <span>Progress Logika</span>
-                                <span>
-                                    {subtasks.length > 0
-                                        ? Math.round((subtasks.filter(s => s.isCompleted).length / subtasks.length) * 100)
-                                        : 0}%
-                                </span>
-                            </div>
-                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                                 <div
-                                    className="bg-blue-600 h-full transition-all duration-500"
-                                    style={{ width: `${subtasks.length > 0 ? (subtasks.filter(s => s.isCompleted).length / subtasks.length) * 100 : 0}%` }}
-                                ></div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* DELETE MODAL (Tetap Ada) */}
-            {taskToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setTaskToDelete(null)}></div>
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in zoom-in-95 duration-200 border border-slate-100">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4"><AlertTriangle size={24} /></div>
-                            <h3 className="text-lg font-bold text-slate-900">Hapus Tugas Ini?</h3>
-                            <p className="text-sm text-slate-500 mt-2 mb-6">Sub-tugas di dalamnya juga akan ikut terhapus.</p>
-                            <div className="flex gap-3 w-full">
-                                <button onClick={() => setTaskToDelete(null)} disabled={isDeleting} className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition text-sm">Batal</button>
-                                <button onClick={confirmDelete} disabled={isDeleting} className="flex-1 px-4 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition text-sm flex items-center justify-center gap-2">{isDeleting ? <Loader2 className="animate-spin" size={16} /> : "Hapus"}</button>
+                                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-1000 ease-out"
+                                    style={{ width: `${progressPercentage}%` }}
+                                />
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
+
+                {/* TABS (Menempel di Header) */}
+                <div className="max-w-5xl mx-auto mt-6 flex gap-6 border-b border-slate-200 text-sm font-medium">
+                    <button
+                        onClick={() => setActiveTab("list")}
+                        className={`pb-3 flex items-center gap-2 transition-all ${activeTab === "list" ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                        <LayoutList size={18} /> Misi Saya
+                        <span className="bg-slate-200 text-slate-600 text-[10px] px-1.5 rounded-full">{myTasks.length}</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("generator")}
+                        className={`pb-3 flex items-center gap-2 transition-all ${activeTab === "generator" ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                        <Sparkles size={18} /> AI Generator
+                    </button>
+                </div>
+            </div>
+
+            <main className="max-w-5xl mx-auto px-4">
+
+                {/* === TAB 1: LIST TUGAS (FOCUS MODE) === */}
+                {activeTab === "list" && (
+                    <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                        {myTasks.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200 shadow-sm">
+                                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                                    <LayoutList size={32} className="text-blue-300" />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800">Meja Kerja Bersih!</h3>
+                                <p className="text-slate-400 max-w-xs mx-auto mb-6 text-sm">Belum ada misi. Gunakan AI Generator untuk merencanakan hari ini.</p>
+                                <button onClick={() => setActiveTab("generator")} className="text-white bg-blue-600 px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5">
+                                    + Buat Rencana
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {myTasks.map((task) => {
+                                    const isDone = task.subtasks.every(s => s.isCompleted) && task.subtasks.length > 0;
+                                    const progress = Math.round((task.subtasks.filter(s => s.isCompleted).length / task.subtasks.length) * 100) || 0;
+
+                                    return (
+                                        <div key={task.id} className={`group bg-white rounded-2xl border transition-all duration-300 flex flex-col h-full relative overflow-hidden ${isDone ? 'border-emerald-100 bg-emerald-50/20 opacity-75' : 'border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-200 hover:-translate-y-1'}`}>
+
+                                            {/* Progress Bar Top */}
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
+                                                <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${progress}%` }} />
+                                            </div>
+
+                                            {/* Header */}
+                                            <div className="p-5 pb-2">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{new Date(task.createdAt).toLocaleDateString("id-ID", { weekday: 'short', day: 'numeric' })}</span>
+                                                    {isDone ? (
+                                                        <span className="text-emerald-600 bg-emerald-100 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><CheckCircle2 size={10} /> SELESAI</span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setFocusTask(task)}
+                                                            className="text-white bg-slate-900 hover:bg-blue-600 text-[10px] px-3 py-1 rounded-full font-bold flex items-center gap-1 transition-colors shadow-lg shadow-slate-900/10"
+                                                        >
+                                                            <Play size={10} fill="currentColor" /> FOKUS
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <h3 className={`font-bold text-slate-800 text-lg leading-snug ${isDone && 'line-through text-slate-400'}`}>{task.content}</h3>
+                                            </div>
+
+                                            {/* Checklist Scrollable */}
+                                            <div className="px-3 flex-1 overflow-y-auto max-h-[250px] custom-scrollbar pb-4">
+                                                {task.subtasks.map((sub) => (
+                                                    <label key={sub.id} className="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors group/item">
+                                                        <div className="relative flex items-center justify-center w-5 h-5 mt-0.5 flex-shrink-0">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={sub.isCompleted}
+                                                                onChange={() => handleCheck(sub.id, sub.isCompleted)}
+                                                                className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded-md checked:bg-blue-500 checked:border-blue-500 transition-colors cursor-pointer"
+                                                            />
+                                                            <CheckCircle2 size={12} className="absolute text-white pointer-events-none opacity-0 peer-checked:opacity-100 scale-50 peer-checked:scale-100 transition-all" />
+                                                        </div>
+                                                        <span className={`text-sm font-medium leading-tight transition-all ${sub.isCompleted ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-600 group-hover/item:text-slate-900'}`}>
+                                                            {sub.content}
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* === TAB 2: AI GENERATOR === */}
+                {activeTab === "generator" && (
+                    <div className="flex flex-col items-center justify-center py-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="text-center mb-8 max-w-lg">
+                            <h2 className="text-3xl font-extrabold text-slate-800 mb-2">
+                                Pecah <span className="text-blue-600">Masalah Besar.</span>
+                            </h2>
+                            <p className="text-slate-500 text-sm">
+                                Tulis targetmu, biarkan AI yang membuatkan checklist agar kamu tidak pusing.
+                            </p>
+                        </div>
+
+                        {/* Input Form */}
+                        <div className="w-full max-w-xl bg-white p-2 rounded-2xl shadow-xl shadow-blue-900/5 border border-slate-200">
+                            <form
+                                onSubmit={handleAtomize}
+                                className={`flex items-center gap-3 p-2 transition-all duration-300 ${status === 'thinking' ? 'opacity-50 pointer-events-none' : ''}`}
+                            >
+                                <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center text-blue-500 flex-shrink-0">
+                                    {status === 'thinking' ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                                </div>
+                                <input
+                                    type="text"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    placeholder="Contoh: Bikin Laporan Keuangan..."
+                                    className="flex-1 bg-transparent text-lg text-slate-700 outline-none font-medium placeholder:text-slate-300"
+                                />
+                                <button type="submit" disabled={!input.trim()} className="bg-blue-600 hover:bg-blue-700 text-white w-12 h-12 rounded-xl flex items-center justify-center transition-all">
+                                    <ArrowRight />
+                                </button>
+                            </form>
+
+                            {/* REVIEW AREA */}
+                            {status === 'review' && (
+                                <div className="mt-4 pt-4 border-t border-slate-100 px-2 pb-2 animate-in slide-in-from-top-2">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-xs font-bold text-slate-400 uppercase">Saran Langkah:</span>
+                                        {!isAddingManual && (
+                                            <button onClick={() => setIsAddingManual(true)} className="text-xs text-blue-600 font-bold hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1">
+                                                <Plus size={12} /> Tambah
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2 mb-4 max-h-60 overflow-y-auto custom-scrollbar">
+                                        {generatedSubtasks.map((task, idx) => (
+                                            <div key={idx} className="flex gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 group hover:border-blue-200">
+                                                <span className="text-slate-700 text-sm font-medium flex-1">{task}</span>
+                                                <button onClick={() => {
+                                                    const n = [...generatedSubtasks]; n.splice(idx, 1); setGeneratedSubtasks(n);
+                                                }} className="text-slate-300 hover:text-red-500"><Trash2 size={14} /></button>
+                                            </div>
+                                        ))}
+                                        {isAddingManual && (
+                                            <form onSubmit={(e) => {
+                                                e.preventDefault(); if (manualInput.trim()) { setGeneratedSubtasks([...generatedSubtasks, manualInput]); setManualInput(""); setIsAddingManual(false); }
+                                            }} className="flex gap-2">
+                                                <input ref={manualInputRef} value={manualInput} onChange={e => setManualInput(e.target.value)} className="flex-1 text-sm border rounded px-2 py-1 outline-blue-500" placeholder="Ketik..." />
+                                                <button type="button" onClick={() => setIsAddingManual(false)} className="text-slate-400"><X size={14} /></button>
+                                            </form>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setStatus('idle')} className="flex-1 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-lg">Batal</button>
+                                        <button onClick={handleSave} className="flex-[2] py-2 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-lg shadow-emerald-500/20">
+                                            <Save size={16} className="inline mr-2" /> Simpan
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+            </main>
         </div>
     );
 }

@@ -92,15 +92,19 @@ export const products = pgTable("products", {
 export const tasks = pgTable("task", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
-    content: text("content").notNull(),
+    content: text("content").notNull(), 
+    notionPageId: text("notionPageId"), 
+    isSynced: boolean("isSynced").default(false), 
+
     isCompleted: boolean("isCompleted").default(false),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });
 
 export const subtasks = pgTable("subtask", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    taskId: text("taskId").notNull().references(() => tasks.id, { onDelete: "cascade" }), // Relasi ke Parent Task
-    content: text("content").notNull(),
+    taskId: text("taskId").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+    content: text("content").notNull(), 
+    notionBlockId: text("notionBlockId"),
     isCompleted: boolean("isCompleted").default(false),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 });

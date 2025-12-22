@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { products, users, tasks,subtasks } from "@/db/schema";
+import { products, users, tasks, subtasks } from "@/db/schema";
 import { revalidatePath } from "next/cache";
-import { desc, eq, and,asc } from "drizzle-orm";
+import { desc, eq, and, asc, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth, signIn, signOut } from "@/auth";
 
@@ -117,7 +117,7 @@ export async function logout() {
 
 export async function updateNotionSettings(formData) {
     const session = await auth();
-    if (!session) return { error: "Harus login dulu!" };
+    if (!session?.user) return { error: "Unauthorized" };
 
     const apiKey = formData.get("apiKey");
     const dbId = formData.get("dbId");
@@ -131,70 +131,82 @@ export async function updateNotionSettings(formData) {
             .where(eq(users.id, session.user.id));
 
         revalidatePath("/dashboard/settings");
-        return { success: "Integrasi Notion berhasil disimpan!" };
+        return { success: true };
     } catch (error) {
         console.error("Gagal update settings:", error);
-        return { error: "Terjadi kesalahan sistem." };
+        return { error: "Gagal menyimpan pengaturan." };
     }
+}
+
+// Fungsi untuk mengambil settings saat ini (biar form terisi otomatis)
+export async function getNotionSettings() {
+    const session = await auth();
+    if (!session?.user) return null;
+
+    const data = await db.query.users.findFirst({
+        where: eq(users.id, session.user.id),
+        columns: {
+            notionApiKey: true,
+            notionDbId: true
+        }
+    });
+
+    return data;
 }
 export async function updateProfile(formData) {
     const session = await auth();
-    if (!session) return { error: "Unauthorized" };
+    if (!session?.user) return { error: "Unauthorized" };
 
     const name = formData.get("name");
-    const image = formData.get("image"); 
-
-    if (!name) return { error: "Nama tidak boleh kosong." };
+    const image = formData.get("image");
 
     try {
         await db.update(users)
-            .set({
-                name: name,
-                image: image
-            })
+            .set({ name, image })
             .where(eq(users.id, session.user.id));
 
         revalidatePath("/dashboard/settings");
-        revalidatePath("/dashboard");
-        return { success: "Profil berhasil diperbarui!" };
+        return { success: true };
     } catch (error) {
-        console.error("Update Profile Error:", error);
-        return { error: "Gagal menyimpan profil." };
+        return { error: "Gagal memperbarui profil." };
     }
 }
-// --- FEATURE: CHANGE PASSWORD ---
+
+// --- 2. GANTI PASSWORD ---
 export async function changePassword(formData) {
     const session = await auth();
-    if (!session) return { error: "Unauthorized" };
+    if (!session?.user) return { error: "Unauthorized" };
 
     const oldPassword = formData.get("oldPassword");
     const newPassword = formData.get("newPassword");
 
-    if (!oldPassword || !newPassword) return { error: "Semua kolom wajib diisi." };
-    if (newPassword.length < 8) return { error: "Password baru minimal 8 karakter." };
-
     try {
-        // 1. Ambil user & password lama dari DB
+        // 1. Ambil password hash user dari DB
         const user = await db.query.users.findFirst({
             where: eq(users.id, session.user.id),
+            columns: { password: true }
         });
 
-        if (!user || !user.password) return { error: "User tidak ditemukan." };
+        if (!user || !user.password) {
+            return { error: "User tidak memiliki password (Login OAuth?)" };
+        }
 
         // 2. Cek Password Lama
-        const isMatch = await bcrypt.compare(oldPassword, user.password);
-        if (!isMatch) return { error: "Password lama salah." };
+        const isValid = await bcrypt.compare(oldPassword, user.password);
+        if (!isValid) return { error: "Password lama salah!" };
 
-        // 3. Hash Password Baru & Simpan
+        // 3. Hash Password Baru
         const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // 4. Simpan
         await db.update(users)
             .set({ password: hashedPassword })
             .where(eq(users.id, session.user.id));
 
-        return { success: "Password berhasil diubah!" };
-    } catch (err) {
-        console.error(err);
-        return { error: "Gagal mengubah password." };
+        return { success: true };
+    } catch (error) {
+        console.error(error);
+        return { error: "Terjadi kesalahan sistem." };
     }
 }
 
@@ -251,7 +263,7 @@ export async function getTasks() {
 export async function getSubtasks(taskId) {
     const session = await auth();
     if (!session) return [];
-    
+
     return await db.select().from(subtasks)
         .where(eq(subtasks.taskId, taskId))
         .orderBy(asc(subtasks.createdAt));
@@ -268,21 +280,118 @@ export async function addSubtask(taskId, content) {
     revalidatePath("/dashboard/tasks");
 }
 
-export async function toggleSubtask(subtaskId, currentState) {
-    const session = await auth();
-    if (!session) return;
+// export async function toggleSubtask(subtaskId, currentState) {
+//     const session = await auth();
+//     if (!session) return;
 
-    await db.update(subtasks)
-        .set({ isCompleted: !currentState })
-        .where(eq(subtasks.id, subtaskId));
-    
-    revalidatePath("/dashboard/tasks");
-}
+//     await db.update(subtasks)
+//         .set({ isCompleted: !currentState })
+//         .where(eq(subtasks.id, subtaskId));
+
+//     revalidatePath("/dashboard/tasks");
+// }
 
 export async function deleteSubtask(subtaskId) {
     const session = await auth();
     if (!session) return;
 
     await db.delete(subtasks).where(eq(subtasks.id, subtaskId));
+    revalidatePath("/dashboard/tasks");
+}
+
+export async function saveAtomizedTask(parentTaskContent, subtaskList) {
+    const session = await auth();
+    if (!session?.user) return { error: "Unauthorized" };
+
+    try {
+        // --- STEP 1: Simpan ke Database Lokal (Postgres) ---
+        // (Ini kode yang sudah ada sebelumnya)
+        const [newTask] = await db.insert(tasks).values({
+            userId: session.user.id,
+            content: parentTaskContent,
+            isCompleted: false,
+        }).returning();
+
+        if (subtaskList.length > 0) {
+            const subtaskData = subtaskList.map((item) => ({
+                taskId: newTask.id,
+                content: item,
+                isCompleted: false,
+            }));
+            await db.insert(subtasks).values(subtaskData);
+        }
+
+        // --- STEP 2: [BARU] Simpan ke Notion User ---
+        // Ambil API Key & DB ID user dari tabel users
+        const userSettings = await db.query.users.findFirst({
+            where: eq(users.id, session.user.id),
+            columns: { notionApiKey: true, notionDbId: true }
+        });
+
+        // Cek apakah user sudah connect Notion?
+        if (userSettings?.notionApiKey && userSettings?.notionDbId) {
+            try {
+                // Panggil kurir Notion
+                await pushTaskToNotion(
+                    userSettings.notionApiKey,
+                    userSettings.notionDbId,
+                    parentTaskContent,
+                    subtaskList
+                );
+                console.log("✅ Berhasil sync ke Notion!");
+            } catch (notionError) {
+                console.error("❌ Gagal sync ke Notion:", notionError);
+                // Kita tidak throw error agar aplikasi tetap jalan meski Notion gagal
+                // (Mungkin nanti bisa kasih notifikasi "Sync Failed")
+            }
+        }
+
+        revalidatePath("/dashboard/tasks");
+        return { success: true, taskId: newTask.id };
+
+    } catch (error) {
+        console.error("Failed to save task:", error);
+        return { error: "Gagal menyimpan tugas." };
+    }
+}
+
+// ... kode saveAtomizedTask sebelumnya ...
+
+export async function getUserTasks() {
+    const session = await auth();
+    if (!session?.user) return [];
+
+    // Ambil task beserta subtasks-nya (Join)
+    // Karena Drizzle ORM murni agak panjang join-nya, kita ambil parent dulu
+    // lalu ambil children-nya. (Atau pakai query builder jika sudah setup relation)
+
+    // Cara simpel manual query:
+    const userTasks = await db.select().from(tasks)
+        .where(eq(tasks.userId, session.user.id))
+        .orderBy(desc(tasks.createdAt));
+
+    // Kalau kosong, return kosong
+    if (userTasks.length === 0) return [];
+
+    // Ambil semua subtasks yang terkait dengan task-task di atas
+    const taskIds = userTasks.map(t => t.id);
+    const userSubtasks = await db.select().from(subtasks)
+        .where(inArray(subtasks.taskId, taskIds))
+        .orderBy(asc(subtasks.createdAt));
+
+    // Gabungkan (Mapping)
+    const combinedData = userTasks.map(task => ({
+        ...task,
+        subtasks: userSubtasks.filter(sub => sub.taskId === task.id)
+    }));
+
+    return combinedData;
+}
+
+// Tambah fungsi centang selesai
+export async function toggleSubtask(subtaskId, currentStatus) {
+    await db.update(subtasks)
+        .set({ isCompleted: !currentStatus })
+        .where(eq(subtasks.id, subtaskId));
     revalidatePath("/dashboard/tasks");
 }
