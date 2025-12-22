@@ -3,23 +3,21 @@
 import Link from "next/link";
 import { ExternalLink, ShoppingCart, Loader2 } from "lucide-react";
 
-const sectionPadding = "py-24 px-6";
-const glassCardClass =
-    "bg-white/70 backdrop-blur-xl border border-white/50 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-white/90";
-
-// Helper untuk format rupiah
 const formatRupiah = (price) => {
     return new Intl.NumberFormat("id-ID", {
         style: "currency",
         currency: "IDR",
         minimumFractionDigits: 0,
-    }).format(price);
+    }).format(price || 0);
 };
 
+// Pastikan nilai default
 const ProductsSection = ({ products = [], isLoading = false }) => {
+    // Validasi Ekstra: Pastikan products benar-benar Array dan ada isinya
+    const hasProducts = products && Array.isArray(products) && products.length > 0;
+
     return (
         <section id="products" className="py-24 px-6 relative overflow-hidden">
-            {/* Dekorasi Background */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
             <div className="mx-auto max-w-6xl relative z-10">
@@ -41,14 +39,13 @@ const ProductsSection = ({ products = [], isLoading = false }) => {
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                         <span className="ml-2 text-gray-500">Memuat produk...</span>
                     </div>
-                ) : products.length > 0 ? (
+                ) : hasProducts ? (
                     <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                        {products.map((product) => (
+                        {products?.map((product) => (
                             <div
                                 key={product.id}
                                 className="bg-white/70 backdrop-blur-xl border border-white/50 shadow-sm rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-white/90 flex flex-col justify-between overflow-hidden group"
                             >
-                                {/* Image Area */}
                                 <div className="h-48 bg-gray-100 w-full relative overflow-hidden">
                                     {product.image_url ? (
                                         <img
@@ -61,7 +58,6 @@ const ProductsSection = ({ products = [], isLoading = false }) => {
                                             <span className="text-xs">No Image</span>
                                         </div>
                                     )}
-                                    {/* Badge Category */}
                                     <div className="absolute top-4 left-4">
                                         <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold rounded-full shadow-sm">
                                             {product.category || "Digital"}
@@ -76,10 +72,9 @@ const ProductsSection = ({ products = [], isLoading = false }) => {
                                         </span>
                                     </div>
                                     <h3 className="mb-2 text-xl font-bold text-[#0A2540] group-hover:text-blue-700 transition-colors">
-                                        <Link href={`/products/${product.slug}`}>{product.name}</Link>
+                                        <Link href={`/products/${product.slug || '#'}`}>{product.name}</Link>
                                     </h3>
 
-                                    {/* Deskripsi dipotong agar rapi */}
                                     <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-grow line-clamp-2">
                                         {product.short_description || product.description || "Tingkatkan produktivitas Anda dengan alat digital premium ini."}
                                     </p>

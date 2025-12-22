@@ -1,9 +1,10 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { products } from "@/db/schema";
+import { products, users } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { desc, eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 export async function addProduct(formData) {
     const name = formData.get("name");
@@ -62,5 +63,49 @@ export async function getProductBySlug(slug) {
     } catch (error) {
         console.error("Gagal ambil detail produk:", error);
         return null;
+    }
+}
+
+export async function registerUser(formData) {
+    const name = formData.get("name");
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    // Validasi Server Side (Jaga-jaga kalau client-side ditembus)
+    if (!email || !password || !name) {
+        return { error: "Semua kolom wajib diisi!" };
+    }
+
+    // Cek Kompleksitas Password (Huruf, Angka, Simbol, Min 8 Karakter)
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+        return { error: "Password terlalu lemah! Gunakan minimal 8 karakter, kombinasi huruf, angka, dan simbol." };
+    }
+
+    // 1. Cek apakah email sudah terdaftar
+    try {
+        const existingUser = await db.select().from(users).where(eq(users.email, email));
+        if (existingUser.length > 0) {
+            return { error: "Email sudah digunakan! Silakan login." };
+        }
+
+        // 2. Hash Password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 3. Simpan ke Database
+        await db.insert(users).values({
+            name: name,
+            email: email,
+            password: hashedPassword,
+            role: "user",
+            plan: "free",
+            image: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0A2540&color=fff`
+        });
+
+        return { success: "Registrasi berhasil! Mengalihkan..." };
+
+    } catch (error) {
+        console.error("Register Error:", error);
+        return { error: "Terjadi kesalahan server. Coba lagi nanti." };
     }
 }

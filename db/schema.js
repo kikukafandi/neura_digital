@@ -5,14 +5,14 @@ import { pgTable, text, integer, timestamp, primaryKey, boolean, json } from "dr
 export const users = pgTable("user", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     name: text("name"),
-    email: text("email").notNull(),
+    email: text("email").notNull().unique(),
+    password: text("password"), 
     emailVerified: timestamp("emailVerified", { mode: "date" }),
     image: text("image"),
-    role: text("role").default("user"),
+    role: text("role").default("user"), 
     plan: text("plan").default("free"),
     createdAt: timestamp("created_at").defaultNow(),
 });
-
 // 2. TABEL ACCOUNTS
 export const accounts = pgTable(
     "account",
@@ -76,9 +76,9 @@ export const integrations = pgTable("integrations", {
 export const products = pgTable("products", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     name: text("name").notNull(),
-    slug: text("slug").notNull().unique(), 
-    description: text("description"), 
-    shortDescription: text("short_description"), 
+    slug: text("slug").notNull().unique(),
+    description: text("description"),
+    shortDescription: text("short_description"),
     adsContent: json("ads_content"),
     category: text("category"),
     price: integer("price").default(0),

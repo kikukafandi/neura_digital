@@ -45,10 +45,12 @@ export default function DashboardLayout({ children }) {
                 </nav>
 
                 <div className="absolute bottom-6 left-0 w-full px-4">
-                    <button className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 hover:bg-white/5 hover:text-red-300 transition-all">
-                        <LogOut size={20} />
-                        Logout
-                    </button>
+                    <form action={async () => { "use server"; const { signOut } = await import("@/auth"); await signOut({ redirectTo: "/login" }); }}>
+                        <button className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 hover:bg-white/5 hover:text-red-300 transition-all">
+                            <LogOut size={20} />
+                            Logout
+                        </button>
+                    </form>
                 </div>
             </aside>
 
