@@ -7,6 +7,7 @@ import { desc, eq, and, asc, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth, signIn, signOut } from "@/auth";
 import { pushTaskToNotion } from "@/lib/notion";
+import { sendWhatsAppMessage } from "@/lib/whatsapp";
 export async function addProduct(formData) {
     const name = formData.get("name");
     const price = parseInt(formData.get("price"));
@@ -339,7 +340,7 @@ _Semangat Produktif!_ 🔥
             `.trim();
 
             // Fire and Forget (Kirim tanpa nunggu response biar UI cepat)
-            sendWhatsAppMessage(userSettings.whatsappToken, settings.whatsappNumber, message);
+            sendWhatsAppMessage(adminToken, userSettings.whatsappNumber, message);
         }
 
         // 3. LOGIKA NOTION SYNC

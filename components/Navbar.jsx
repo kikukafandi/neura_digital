@@ -1,12 +1,15 @@
-"use client"; // Wajib karena ada useState
+"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Zap, Menu, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
+    // Deteksi Scroll untuk efek border/shadow
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener("scroll", handleScroll);
@@ -16,101 +19,92 @@ const Navbar = () => {
     const handleLinkClick = () => setIsOpen(false);
 
     const navLinks = [
-        { name: "Produk", href: "/products" },
-        { name: "Tentang", href: "/about" },
-        { name: "Keunggulan", href: "/features" },
-        { name: "Kontak", href: "/contact" }, 
+        { name: "Store", href: "/dashboard/products" },
+        { name: "Features", href: "/features" },
+        { name: "About", href: "/about" },
     ];
 
     return (
-        <nav
-            className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled || isOpen
-                ? "bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm"
-                : "bg-transparent border-transparent"
-                }`}
-        >
-            <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
-                {/* Logo */}
-                <Link href="/" className="text-2xl font-bold tracking-tight text-[#0A2540] flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                        <img src="/icon.png" alt="nalar-icon" className="rounded-full" />
-                    </div>
-                    Simpul Nalar
+        <>
+            {/* --- NAVBAR UTAMA (MODEL KAPSUL MELAYANG) --- */}
+            <nav
+                className={`fixed top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl z-50 transition-all duration-300 ${
+                    scrolled || isOpen
+                        ? "bg-[#0A0F1E]/80 backdrop-blur-md border border-white/10 shadow-2xl shadow-black/50"
+                        : "bg-transparent border border-transparent"
+                } rounded-full h-14 px-6 flex items-center justify-between`}
+            >
+                {/* 1. LOGO */}
+                <Link href="/" className="flex items-center gap-2 group" onClick={handleLinkClick}>
+                    {/* Titik Kedip ala Cybernetic */}
+                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                    <span className="font-bold text-sm tracking-wide text-white group-hover:text-cyan-400 transition-colors">
+                        Simpul Nalar
+                    </span>
                 </Link>
 
-                {/* Desktop Links */}
-                <div className="hidden space-x-8 md:flex">
+                {/* 2. DESKTOP LINKS */}
+                <div className="hidden md:flex items-center gap-6">
                     {navLinks.map((link) => (
                         <Link
                             key={link.name}
                             href={link.href}
-                            className="text-sm font-medium text-gray-600 hover:text-[#0052CC] transition-colors"
+                            className="text-[11px] font-medium text-slate-400 hover:text-white uppercase tracking-wider transition-colors"
                         >
                             {link.name}
                         </Link>
                     ))}
-                </div>
-
-                {/* CTA Button Desktop */}
-                <div className="hidden md:block">
-                    <Link
-                        href="#contact"
-                        className="rounded-full bg-[#0A2540] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#0052CC] hover:shadow-lg hover:scale-105 active:scale-95"
+                    <Link 
+                        href="/auth/register" 
+                        className="text-[11px] font-bold bg-white/10 text-white px-4 py-1.5 rounded-full hover:bg-white hover:text-slate-950 transition border border-white/5"
                     >
-                        Hubungi Kami
+                        Login
                     </Link>
                 </div>
 
-                {/* Mobile Menu Button (Hamburger) */}
-                <div className="md:hidden">
-                    <button
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="text-gray-800 focus:outline-none p-2 rounded-md hover:bg-gray-100 transition-colors"
-                        aria-label="Toggle menu"
-                    >
-                        {isOpen ? (
-                            // Icon X (Close)
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        ) : (
-                            // Icon Hamburger
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-                            </svg>
-                        )}
-                    </button>
-                </div>
-            </div>
+                {/* 3. MOBILE MENU BUTTON (HAMBURGER) */}
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="md:hidden text-slate-300 hover:text-white focus:outline-none"
+                >
+                    {isOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
+            </nav>
 
-            {/* Mobile Menu Dropdown */}
-            {/* Menggunakan absolute positioning agar menimpa konten di bawahnya */}
-            <div
-                className={`md:hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-xl overflow-hidden transition-all duration-300 ease-in-out origin-top ${isOpen ? "max-h-screen opacity-100 py-6" : "max-h-0 opacity-0 py-0"
-                    }`}
-            >
-                <div className="flex flex-col space-y-4 px-6">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.name}
-                            href={link.href}
-                            onClick={handleLinkClick}
-                            className="block text-lg font-medium text-gray-700 hover:text-[#0052CC]"
-                        >
-                            {link.name}
-                        </Link>
-                    ))}
-                    <hr className="border-gray-100" />
-                    <Link
-                        href="#contact"
-                        onClick={handleLinkClick}
-                        className="block w-full text-center rounded-lg bg-[#0A2540] py-3 text-base font-bold text-white shadow-md active:scale-95"
+            {/* --- MOBILE MENU DROPDOWN (ANIMATED) --- */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl z-40 bg-[#0A0F1E] border border-white/10 rounded-2xl p-4 shadow-2xl md:hidden"
                     >
-                        Hubungi Kami
-                    </Link>
-                </div>
-            </div>
-        </nav>
+                        <div className="flex flex-col space-y-2">
+                            {navLinks.map((link) => (
+                                <Link
+                                    key={link.name}
+                                    href={link.href}
+                                    onClick={handleLinkClick}
+                                    className="block px-4 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                                >
+                                    {link.name}
+                                </Link>
+                            ))}
+                            <div className="h-px bg-white/5 my-2"></div>
+                            <Link
+                                href="/auth/register"
+                                onClick={handleLinkClick}
+                                className="block w-full text-center rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/50 active:scale-95 transition-transform"
+                            >
+                                Login / Daftar
+                            </Link>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 };
 
