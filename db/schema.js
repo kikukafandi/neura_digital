@@ -12,6 +12,7 @@ export const users = pgTable("user", {
     role: text("role").default("user"),
     plan: text("plan").default("free"),
     createdAt: timestamp("created_at").defaultNow(),
+    whatsappNumber: text("whatsapp_number"),
     notionApiKey: text("notion_api_key"),
     notionDbId: text("notion_db_id"),
 });

@@ -4,23 +4,28 @@ import { useState, useEffect } from "react";
 import {
     User, Lock, Database, CreditCard, Save, Loader2,
     Key, Link as LinkIcon, ShieldAlert, CheckCircle2, Zap, TrendingUp,
-    Camera, ChevronRight, Menu
+    Camera, ChevronRight, Menu,
+    HelpCircle,
+    MessageCircle,
+    Smartphone
 } from "lucide-react";
-import { 
-    updateNotionSettings, 
-    getNotionSettings, 
-    changePassword, 
-    updateProfile 
+import {
+    updateNotionSettings,
+    updateIntegrationSettings,
+    getIntegrationSettings,
+    getNotionSettings,
+    changePassword,
+    updateProfile
 } from "@/app/actions";
 import { useSession } from "next-auth/react";
 import toast, { Toaster } from "react-hot-toast";
+import Link from "next/link";
 
 // --- MAIN PAGE COMPONENT ---
 export default function SettingsPage() {
     const { data: session, status } = useSession();
     const [activeTab, setActiveTab] = useState("profile");
 
-    // LOADING STATE
     if (status === "loading") {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 animate-in fade-in">
@@ -32,7 +37,7 @@ export default function SettingsPage() {
 
     const tabs = [
         { id: "profile", label: "Profil", icon: User, desc: "Identitas" },
-        { id: "integration", label: "Integrasi", icon: Database, desc: "Koneksi" },
+        { id: "integration", label: "Integrasi", icon: Database, desc: "Notion & WA" },
         { id: "security", label: "Keamanan", icon: Lock, desc: "Akses" },
         { id: "billing", label: "Paket", icon: CreditCard, desc: "Langganan" },
     ];
@@ -41,15 +46,13 @@ export default function SettingsPage() {
         <div className="max-w-7xl mx-auto animate-in fade-in duration-500 pb-24 px-4 pt-4 md:pt-8">
             <Toaster position="top-center" toastOptions={{ duration: 3000, style: { background: '#1e293b', color: '#fff', fontSize: '14px' } }} />
 
-            {/* HEADER SECTION */}
             <div className="mb-6 md:mb-10">
                 <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Pengaturan</h1>
                 <p className="text-slate-500 mt-1 text-sm md:text-lg">Kelola akun dan preferensi sistem.</p>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start relative">
-
-                {/* --- NAVIGATION (Grid di HP, Sidebar di Desktop) --- */}
+                {/* NAVIGASI MOBILE-FIRST */}
                 <aside className="w-full lg:w-72 flex-shrink-0 z-30 lg:sticky lg:top-24">
                     <nav className="bg-white rounded-2xl border border-slate-200 shadow-sm p-2 grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:gap-1">
                         {tabs.map((tab) => {
@@ -64,14 +67,10 @@ export default function SettingsPage() {
                                         : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                                         }`}
                                 >
-                                    {isActive && (
-                                        <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full"></div>
-                                    )}
-                                    
+                                    {isActive && <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full"></div>}
                                     <div className={`p-2 rounded-lg transition-colors ${isActive ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-400 group-hover:bg-white group-hover:shadow-sm"}`}>
                                         <Icon size={18} />
                                     </div>
-                                    
                                     <div className="flex flex-col">
                                         <span className={`text-xs md:text-sm font-bold ${isActive ? "text-slate-900" : "text-slate-600"}`}>{tab.label}</span>
                                         <span className="hidden lg:block text-[10px] text-slate-400 font-medium">{tab.desc}</span>
@@ -82,7 +81,6 @@ export default function SettingsPage() {
                     </nav>
                 </aside>
 
-                {/* --- CONTENT AREA --- */}
                 <div className="flex-1 w-full min-w-0">
                     <div className="space-y-6">
                         {activeTab === "profile" && <ProfileForm session={session} />}
@@ -107,7 +105,7 @@ function ProfileForm({ session }) {
         setIsSaving(true);
         const newName = formData.get("name");
         let newImage = formData.get("image");
-        
+
         if (!newImage) {
             newImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(newName)}&background=0A2540&color=fff`;
             formData.set("image", newImage);
@@ -126,11 +124,11 @@ function ProfileForm({ session }) {
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 md:space-y-6">
-            
+
             {/* Kartu Header Profil */}
             <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm p-5 md:p-8 relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-full h-20 md:h-24 bg-gradient-to-r from-blue-600 to-indigo-700"></div>
-                
+
                 <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 md:gap-6 pt-8 md:pt-10">
                     <div className="relative group/avatar flex-shrink-0">
                         <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white p-1 shadow-xl">
@@ -145,7 +143,7 @@ function ProfileForm({ session }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="text-center sm:text-left pb-1 flex-1 min-w-0">
                         <h2 className="text-xl md:text-2xl font-bold text-slate-800 truncate">{user?.name}</h2>
                         <p className="text-slate-500 text-xs md:text-sm font-medium truncate">{user?.email}</p>
@@ -165,7 +163,7 @@ function ProfileForm({ session }) {
                     <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><User size={18} /></div>
                     <h3 className="font-bold text-slate-800 text-sm md:text-base">Informasi Dasar</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div className="space-y-2">
                         <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Lengkap</label>
@@ -176,7 +174,7 @@ function ProfileForm({ session }) {
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-800 text-sm"
                         />
                     </div>
-                    
+
                     <div className="space-y-2">
                         <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">URL Foto Profil</label>
                         <div className="relative">
@@ -218,91 +216,89 @@ function ProfileForm({ session }) {
 function IntegrationForm() {
     const [isSaving, setIsSaving] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(true);
-    const [formData, setFormData] = useState({ apiKey: "", dbId: "" });
-    const [isConnected, setIsConnected] = useState(false);
+    const [formData, setFormData] = useState({ notionApiKey: "", notionDbId: "", whatsappNumber: "" });
 
     useEffect(() => {
-        getNotionSettings().then((data) => {
-            if (data) {
-                setFormData({ apiKey: data.notionApiKey || "", dbId: data.notionDbId || "" });
-                if (data.notionApiKey && data.notionDbId) setIsConnected(true);
-            }
+        getIntegrationSettings().then((data) => {
+            if (data) setFormData({ ...data });
             setIsLoadingData(false);
         });
     }, []);
 
-    async function handleSaveNotion(form) {
+    async function handleSave(e) {
+        e.preventDefault();
         setIsSaving(true);
-        const res = await updateNotionSettings(form);
+        const formPayload = new FormData(e.target);
+        const res = await updateIntegrationSettings(formPayload);
         setIsSaving(false);
         if (res?.error) toast.error(res.error);
-        else {
-            toast.success("Koneksi berhasil!");
-            setIsConnected(true);
-        }
+        else toast.success("Integrasi tersimpan!");
     }
 
-    if (isLoadingData) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-slate-300"/></div>;
+    if (isLoadingData) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-slate-300" /></div>;
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 md:space-y-6">
-            
-            {/* Status Card - Mobile Optimized */}
-            <div className={`p-5 rounded-2xl md:rounded-3xl border flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-colors ${isConnected ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-200"}`}>
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0 ${isConnected ? "bg-emerald-500 text-white" : "bg-white text-slate-400"}`}>
-                    <Database size={24} />
+        <form onSubmit={handleSave} className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+
+            {/* SEKSI 1: NOTION */}
+            <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm p-5 md:p-8">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                    <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><Database size={20} /></div>
+                    <div>
+                        <h3 className="font-bold text-slate-800 text-sm md:text-base">Notion Sync</h3>
+                        <p className="text-xs text-slate-400">Hubungkan database Notion.</p>
+                    </div>
                 </div>
-                <div className="flex-1">
-                    <h3 className={`font-bold text-base md:text-lg ${isConnected ? "text-emerald-900" : "text-slate-700"}`}>
-                        {isConnected ? "Notion Terhubung" : "Belum Terhubung"}
-                    </h3>
-                    <p className={`text-xs md:text-sm ${isConnected ? "text-emerald-700" : "text-slate-500"}`}>
-                        {isConnected ? "Sinkronisasi aktif." : "Hubungkan API Key untuk mulai."}
-                    </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase">Integration Token</label>
+                        <input name="notionApiKey" type="password" defaultValue={formData.notionApiKey} placeholder="secret_..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 text-xs transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase">Database ID</label>
+                        <input name="notionDbId" type="text" defaultValue={formData.notionDbId} placeholder="xxxxxxxx" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 text-xs transition-all" />
+                    </div>
                 </div>
             </div>
 
-            <form action={handleSaveNotion} className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm p-5 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><Key size={18}/></div>
-                    <h3 className="font-bold text-slate-800 text-sm md:text-base">Kredensial API</h3>
-                </div>
+            {/* SEKSI 2: WHATSAPP */}
+            <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm p-5 md:p-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
 
-                <div className="space-y-4 md:space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">Notion Integration Token</label>
-                        <div className="relative group">
-                            <input 
-                                name="apiKey" 
-                                type="password" 
-                                defaultValue={formData.apiKey}
-                                placeholder="secret_..." 
-                                className="w-full px-4 py-3 pl-11 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs md:text-sm transition-all" 
-                            />
-                            <Key className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-blue-500" size={16} />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">Database ID</label>
-                        <div className="relative group">
-                            <input 
-                                name="dbId" 
-                                type="text" 
-                                defaultValue={formData.dbId}
-                                placeholder="xxxxxxxxxxxxxxxx" 
-                                className="w-full px-4 py-3 pl-11 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-xs md:text-sm transition-all" 
-                            />
-                            <LinkIcon className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-blue-500" size={16} />
-                        </div>
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                    <div className="p-2 bg-green-100 rounded-lg text-green-600"><MessageCircle size={20} /></div>
+                    <div>
+                        <h3 className="font-bold text-slate-800 text-sm md:text-base">WhatsApp Notifier</h3>
+                        <p className="text-xs text-slate-400">Terima notifikasi tugas di HP Anda.</p>
                     </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
-                    <SaveButton isSaving={isSaving} text="Simpan Koneksi" />
+                <div className="space-y-4">
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-xs text-blue-800 leading-relaxed">
+                        Kami akan mengirimkan notifikasi ringkas setiap kali Anda membuat misi baru. Pastikan nomor aktif.
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase">Nomor WhatsApp Anda</label>
+                        <div className="relative group">
+                            <input
+                                name="whatsappNumber"
+                                type="tel"
+                                defaultValue={formData.whatsappNumber}
+                                placeholder="Contoh: 081234567890"
+                                className="w-full px-4 py-3 pl-10 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-green-500/20 text-sm transition-all font-medium text-slate-800"
+                            />
+                            <Smartphone className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-green-500" size={16} />
+                        </div>
+                        <p className="text-[10px] text-slate-400">Gunakan format angka saja (08xx atau 628xx).</p>
+                    </div>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+                <SaveButton isSaving={isSaving} text="Simpan Semua" />
+            </div>
+        </form>
     );
 }
 
@@ -327,7 +323,7 @@ function SecurityForm({ session }) {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
             <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm p-5 md:p-8">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><Lock size={18}/></div>
+                    <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><Lock size={18} /></div>
                     <h3 className="font-bold text-slate-800 text-sm md:text-base">Ubah Password</h3>
                 </div>
 
@@ -353,7 +349,7 @@ function SecurityForm({ session }) {
                         </div>
                         <div className="pt-4">
                             <button disabled={isSaving} className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-red-600 hover:border-red-100 transition-all flex items-center justify-center gap-2 shadow-sm text-sm">
-                                {isSaving ? <Loader2 className="animate-spin" size={16} /> : <ShieldAlert size={16} />} 
+                                {isSaving ? <Loader2 className="animate-spin" size={16} /> : <ShieldAlert size={16} />}
                                 Update Password
                             </button>
                         </div>
@@ -376,13 +372,13 @@ function BillingView({ session }) {
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                 {/* PLAN CARD */}
                 <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-[#0A2540] text-white shadow-xl p-6 md:p-8 flex flex-col justify-between min-h-[260px] md:min-h-[280px]">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-20 -mt-20"></div>
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -ml-20 -mb-10"></div>
-                    
+
                     <div className="relative z-10">
                         <div className="flex justify-between items-start">
                             <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-blue-100 border border-white/10">
@@ -407,7 +403,7 @@ function BillingView({ session }) {
                             </div>
                         ) : (
                             <button className="w-full py-3 bg-white text-[#0A2540] font-bold rounded-xl hover:bg-blue-50 transition shadow-lg flex items-center justify-center gap-2 group text-sm">
-                                <Zap size={16} className="text-yellow-500 fill-yellow-500 group-hover:scale-110 transition-transform" /> 
+                                <Zap size={16} className="text-yellow-500 fill-yellow-500 group-hover:scale-110 transition-transform" />
                                 Upgrade Sekarang
                             </button>
                         )}
@@ -422,8 +418,8 @@ function BillingView({ session }) {
                     </h4>
                     <div className="space-y-5">
                         {usageStats.map((stat, idx) => {
-                             const percentage = typeof stat.limit === 'number' ? (stat.used / stat.limit) * 100 : 15;
-                             return (
+                            const percentage = typeof stat.limit === 'number' ? (stat.used / stat.limit) * 100 : 15;
+                            return (
                                 <div key={idx}>
                                     <div className="flex justify-between text-[10px] md:text-xs font-bold mb-2">
                                         <span className="text-slate-500 uppercase tracking-wider">{stat.label}</span>
@@ -454,3 +450,4 @@ function SaveButton({ isSaving, text }) {
         </button>
     );
 }
+

@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { desc, eq, and, asc, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth, signIn, signOut } from "@/auth";
-
+import { pushTaskToNotion } from "@/lib/notion";
 export async function addProduct(formData) {
     const name = formData.get("name");
     const price = parseInt(formData.get("price"));
@@ -164,7 +164,6 @@ export async function updateProfile(formData) {
         await db.update(users)
             .set({ name, image })
             .where(eq(users.id, session.user.id));
-
         revalidatePath("/dashboard/settings");
         return { success: true };
     } catch (error) {
@@ -304,8 +303,7 @@ export async function saveAtomizedTask(parentTaskContent, subtaskList) {
     if (!session?.user) return { error: "Unauthorized" };
 
     try {
-        // --- STEP 1: Simpan ke Database Lokal (Postgres) ---
-        // (Ini kode yang sudah ada sebelumnya)
+        // 1. Simpan ke DB Lokal
         const [newTask] = await db.insert(tasks).values({
             userId: session.user.id,
             content: parentTaskContent,
@@ -314,58 +312,62 @@ export async function saveAtomizedTask(parentTaskContent, subtaskList) {
 
         if (subtaskList.length > 0) {
             const subtaskData = subtaskList.map((item) => ({
-                taskId: newTask.id,
-                content: item,
-                isCompleted: false,
+                taskId: newTask.id, content: item, isCompleted: false,
             }));
             await db.insert(subtasks).values(subtaskData);
         }
 
-        // --- STEP 2: [BARU] Simpan ke Notion User ---
-        // Ambil API Key & DB ID user dari tabel users
-        const userSettings = await db.query.users.findFirst({
-            where: eq(users.id, session.user.id),
-            columns: { notionApiKey: true, notionDbId: true }
-        });
+        // 2. Ambil Settings Integrasi User
+        const userSettings = await getIntegrationSettings();
+        const adminToken = process.env.FONNTE_ADMIN_TOKEN;
+        // [BARU] LOGIKA KIRIM WA (Text + Link)
+        if (adminToken && userSettings?.whatsappNumber) {
+            const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000/";
 
-        // Cek apakah user sudah connect Notion?
+            const message = `
+🚀 *Misi Baru Terdeteksi!*
+"${parentTaskContent}"
+
+📋 *Langkah-langkah:*
+${subtaskList.map((sub, i) => `${i + 1}. ${sub}`).join("\n")}
+
+👇 *Kerjakan & Centang di sini:*
+${appUrl}/dashboard/tasks
+
+_Semangat Produktif!_ 🔥
+~ Simpul Nalar AI
+            `.trim();
+
+            // Fire and Forget (Kirim tanpa nunggu response biar UI cepat)
+            sendWhatsAppMessage(userSettings.whatsappToken, settings.whatsappNumber, message);
+        }
+
+        // 3. LOGIKA NOTION SYNC
         if (userSettings?.notionApiKey && userSettings?.notionDbId) {
             try {
-                // Panggil kurir Notion
-                await pushTaskToNotion(
-                    userSettings.notionApiKey,
-                    userSettings.notionDbId,
-                    parentTaskContent,
-                    subtaskList
+                const notionPageId = await pushTaskToNotion(
+                    userSettings.notionApiKey, userSettings.notionDbId, parentTaskContent, subtaskList
                 );
-                console.log("✅ Berhasil sync ke Notion!");
-            } catch (notionError) {
-                console.error("❌ Gagal sync ke Notion:", notionError);
-                // Kita tidak throw error agar aplikasi tetap jalan meski Notion gagal
-                // (Mungkin nanti bisa kasih notifikasi "Sync Failed")
-            }
+                if (notionPageId) {
+                    await db.update(tasks).set({ isSynced: true, notionPageId: notionPageId }).where(eq(tasks.id, newTask.id));
+                }
+            } catch (e) { console.error("Notion Error:", e); }
         }
 
         revalidatePath("/dashboard/tasks");
         return { success: true, taskId: newTask.id };
 
     } catch (error) {
-        console.error("Failed to save task:", error);
+        console.error("Save Task Error:", error);
         return { error: "Gagal menyimpan tugas." };
     }
 }
 
-// ... kode saveAtomizedTask sebelumnya ...
 
 export async function getUserTasks() {
     const session = await auth();
     if (!session?.user) return [];
 
-    // Ambil task beserta subtasks-nya (Join)
-    // Karena Drizzle ORM murni agak panjang join-nya, kita ambil parent dulu
-    // lalu ambil children-nya. (Atau pakai query builder jika sudah setup relation)
-
-    // Cara simpel manual query:
     const userTasks = await db.select().from(tasks)
         .where(eq(tasks.userId, session.user.id))
         .orderBy(desc(tasks.createdAt));
@@ -394,4 +396,50 @@ export async function toggleSubtask(subtaskId, currentStatus) {
         .set({ isCompleted: !currentStatus })
         .where(eq(subtasks.id, subtaskId));
     revalidatePath("/dashboard/tasks");
+}
+export async function updateIntegrationSettings(formData) {
+    const session = await auth();
+    if (!session?.user) return { error: "Unauthorized" };
+
+    const notionApiKey = formData.get("notionApiKey");
+    const notionDbId = formData.get("notionDbId");
+    const whatsappNumber = formData.get("whatsappNumber");
+
+    try {
+        await db.update(users)
+            .set({
+                notionApiKey,
+                notionDbId,
+                whatsappNumber
+            })
+            .where(eq(users.id, session.user.id));
+
+        revalidatePath("/dashboard/settings");
+        return { success: true };
+    } catch (error) {
+        console.error(error);
+        return { error: "Gagal menyimpan pengaturan." };
+    }
+}
+
+// --- [BARU] GET SETTINGS (GABUNGAN) ---
+export async function getIntegrationSettings() {
+    const session = await auth();
+    if (!session?.user) return null;
+
+    try {
+        const data = await db
+            .select({
+                notionApiKey: users.notionApiKey,
+                notionDbId: users.notionDbId,
+                whatsappNumber: users.whatsappNumber
+            })
+            .from(users)
+            .where(eq(users.id, session.user.id))
+            .limit(1);
+
+        return data[0] || null;
+    } catch (error) {
+        return null;
+    }
 }
