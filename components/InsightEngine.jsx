@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function InsightEngine() {
+export default function InsightEngine() {   
     const [insight, setInsight] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
