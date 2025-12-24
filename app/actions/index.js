@@ -5,3 +5,4 @@ export * from "./templates";
 export * from "./ai";
 export * from "./settings";
 export * from "./admin";
+export * from "./automation";

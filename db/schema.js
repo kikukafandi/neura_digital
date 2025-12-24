@@ -118,3 +118,12 @@ export const templates = pgTable("templates", {
     structure: json("structure").notNull(), // Menyimpan array langkah-langkah (subtasks)
     createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const automations = pgTable("automations", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    isActive: boolean("is_active").default(true),
+    flowData: json("flow_data").notNull(), 
+    createdAt: timestamp("created_at").defaultNow(),
+});

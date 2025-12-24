@@ -7,7 +7,6 @@ import { eq, and, asc, desc, inArray } from "drizzle-orm";
 import { auth } from "@/auth";
 import { pushTaskToNotion } from "@/lib/notion";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
-// Import fungsi settings karena dibutuhkan di saveAtomizedTask
 import { getIntegrationSettings } from "./settings";
 
 export async function addTask(formData) {
@@ -29,9 +28,19 @@ export async function toggleTask(taskId, currentState) {
     const session = await auth();
     if (!session) return;
 
-    await db.update(tasks)
-        .set({ isCompleted: !currentState })
-        .where(and(eq(tasks.id, taskId), eq(tasks.userId, session.user.id)));
+    const newState = !currentState;
+
+    // 1. Update DB
+    const [updatedTask] = await db.update(tasks)
+        .set({ isCompleted: newState })
+        .where(and(eq(tasks.id, taskId), eq(tasks.userId, session.user.id)))
+        .returning(); // Ambil data task yang baru diupdate
+
+    // 2. TRIGGER AUTOMATION (Jika task jadi SELESAI)
+    if (newState === true && updatedTask) {
+        // Fire and Forget (jalan di background)
+        checkAndExecuteAutomations("TASK_COMPLETED", { taskName: updatedTask.content });
+    }
 
     revalidatePath("/dashboard/tasks");
     revalidatePath("/dashboard");
