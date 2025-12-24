@@ -6,3 +6,4 @@ export * from "./ai";
 export * from "./settings";
 export * from "./admin";
 export * from "./automation";
+export * from "./gateway";

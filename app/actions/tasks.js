@@ -38,8 +38,11 @@ export async function toggleTask(taskId, currentState) {
 
     // 2. TRIGGER AUTOMATION (Jika task jadi SELESAI)
     if (newState === true && updatedTask) {
-        // Fire and Forget (jalan di background)
-        checkAndExecuteAutomations("TASK_COMPLETED", { taskName: updatedTask.content });
+        // Kirim taskId juga!
+        executeAutomationTrigger("TASK_COMPLETED", {
+            taskName: updatedTask.content,
+            taskId: updatedTask.id // <--- INI PENTING UNTUK FILTERING
+        });
     }
 
     revalidatePath("/dashboard/tasks");

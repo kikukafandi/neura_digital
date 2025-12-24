@@ -73,7 +73,7 @@ export async function executeAutomationTrigger(triggerEvent, payload) {
     const session = await auth();
     if (!session) return;
 
-    // Ambil semua automasi user
+    // 1. Ambil semua automasi aktif
     const flows = await db.select().from(automations).where(and(
         eq(automations.userId, session.user.id),
         eq(automations.isActive, true)
@@ -82,73 +82,47 @@ export async function executeAutomationTrigger(triggerEvent, payload) {
     for (const flow of flows) {
         const { nodes, edges } = flow.flowData;
 
-        // 1. Cari Node TRIGGER yang cocok
-        const triggerNode = nodes.find(
-            n => n.type === "TRIGGER" && n.data.event === triggerEvent
-        );
+        // 2. Cari Node TRIGGER yang cocok EVENT-nya
+        const triggerNode = nodes.find(n => n.type === 'TRIGGER' && n.data.event === triggerEvent);
 
         if (triggerNode) {
-            // Jika trigger cocok, cari Action yang terhubung (Edge)
-            const connectedEdges = edges.filter(
-                e => e.source === triggerNode.id
-            );
-
-            for (const edge of connectedEdges) {
-                const actionNode = nodes.find(
-                    n => n.id === edge.target
-                );
-
-                if (actionNode) {
-                    await runActionNode(actionNode, payload);
+            // --- LOGIKA FILTER TUGAS SPESIFIK ---
+            // Jika di config node ada 'specificTaskId', kita cek apakah cocok dengan payload
+            if (triggerNode.data.specificTaskId && triggerNode.data.specificTaskId !== "ALL") {
+                if (triggerNode.data.specificTaskId !== payload.taskId) {
+                    continue; // SKIP jika ID tugas tidak cocok
                 }
+            }
+
+            // Jika cocok (atau settingnya ALL), jalankan aksinya
+            const connectedEdges = edges.filter(e => e.source === triggerNode.id);
+            for (const edge of connectedEdges) {
+                const actionNode = nodes.find(n => n.id === edge.target);
+                if (actionNode) await runActionNode(actionNode, payload);
             }
         }
     }
 }
 
-// 5. ACTION RUNNER
 async function runActionNode(node, payload) {
     const config = node.data;
     const settings = await getIntegrationSettings();
 
     try {
-        // --- ACTION: WHATSAPP ---
         if (config.action === "SEND_WA" && settings?.whatsappNumber) {
-            const msg = config.message.replace(
-                "{task}",
-                payload.taskName || "Unknown"
-            );
-
-            await sendWhatsAppMessage(
-                process.env.FONNTE_ADMIN_TOKEN,
-                settings.whatsappNumber,
-                msg
-            );
+            const msg = config.message.replace("{task}", payload.taskName || "Unknown");
+            await sendWhatsAppMessage(process.env.FONNTE_ADMIN_TOKEN, settings.whatsappNumber, msg);
         }
-
-        // --- ACTION: CREATE TASK ---
-        if (config.action === "CREATE_TASK") {
-            const content = config.content.replace(
-                "{task}",
-                payload.taskName || ""
-            );
-
-            // Logic insert task biasa...
-            // await db.insert(tasks).values({ ... });
-
-            console.log("Auto Task Created:", content);
-        }
-
-        // --- ACTION: EMAIL (SIMULASI) ---
         if (config.action === "SEND_EMAIL") {
-            console.log(
-                `[MOCK EMAIL] To: User | Subject: Alert | Body: ${config.subject}`
-            );
-            // Real implementation pakai Resend / Nodemailer
+            // Mock Email
+            console.log(`[EMAIL SENT] To: User | Subj: ${config.subject}`);
         }
-
-        console.log(`[NEURAL ENGINE] Executed Node: ${node.id}`);
+        if (config.action === "CREATE_TASK") {
+            // Logic create task recursive bisa ditambahkan di sini
+            console.log("Create Task Triggered");
+        }
     } catch (e) {
         console.error("Execution Failed:", e);
     }
 }
+

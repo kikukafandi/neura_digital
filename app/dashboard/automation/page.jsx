@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { getAutomations, saveAutomation, deleteAutomation } from "@/app/actions";
+// Import getUserTasks untuk list tugas
+import { getAutomations, saveAutomation, deleteAutomation, getUserTasks } from "@/app/actions";
 import { 
     Zap, Plus, Trash2, Save, Workflow, 
     MessageCircle, Mail, CheckSquare, X, MousePointer2,
@@ -13,6 +14,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 
 export default function NeuralCanvasPage() {
     const [savedFlows, setSavedFlows] = useState([]);
+    const [userTasks, setUserTasks] = useState([]); // State untuk menyimpan daftar tugas user
     
     // --- CANVAS STATE ---
     const [currentFlowId, setCurrentFlowId] = useState(null);
@@ -23,11 +25,10 @@ export default function NeuralCanvasPage() {
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     
     // --- TOOL & INTERACTION ---
-    const [activeTool, setActiveTool] = useState("POINTER"); // 'POINTER' | 'HAND'
+    const [activeTool, setActiveTool] = useState("POINTER");
     const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
     const [clipboard, setClipboard] = useState([]); 
     
-    // Dragging & Selecting State
     const [isPanning, setIsPanning] = useState(false);
     const [isBoxSelecting, setIsBoxSelecting] = useState(false);
     const [selectionBox, setSelectionBox] = useState({ x: 0, y: 0, w: 0, h: 0 });
@@ -43,86 +44,57 @@ export default function NeuralCanvasPage() {
 
     useEffect(() => { loadData(); }, []);
 
-    // --- KEYBOARD SHORTCUTS (FIXED) ---
+    // --- KEYBOARD SHORTCUTS ---
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (!isEditorOpen) return;
-            if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
 
-            // 1. DELETE
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (selectedIds.length > 0) removeSelectedNodes();
             }
-
-            // 2. SELECT ALL (Ctrl + A)
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
                 e.preventDefault();
                 setSelectedIds(nodes.map(n => n.id));
                 toast.success(`${nodes.length} nodes terpilih`);
             }
-
-            // 3. DUPLICATE (Ctrl + D) - [FIXED]
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
-                e.preventDefault(); // Mencegah Bookmark Browser
-                
+                e.preventDefault(); 
                 const selectedNodes = nodes.filter(n => selectedIds.includes(n.id));
                 if (selectedNodes.length > 0) {
                     const newIds = [];
                     const newNodes = selectedNodes.map(node => {
                         const newId = crypto.randomUUID().slice(0, 4);
                         newIds.push(newId);
-                        return {
-                            ...node,
-                            id: newId,
-                            position: { x: node.position.x + 30, y: node.position.y + 30 } // Offset sedikit
-                        };
+                        return { ...node, id: newId, position: { x: node.position.x + 30, y: node.position.y + 30 } };
                     });
-                    
                     setNodes(prev => [...prev, ...newNodes]);
-                    setSelectedIds(newIds); // Select hasil duplikat
-                    toast.success(`Duplicated ${newNodes.length} nodes`);
+                    setSelectedIds(newIds); 
                 }
             }
-
-            // 4. TOOLS
             if (e.key.toLowerCase() === 'h') setActiveTool('HAND');
             if (e.key.toLowerCase() === 'v') setActiveTool('POINTER');
             if (e.code === 'Space' && !e.repeat) { e.preventDefault(); setActiveTool('HAND'); }
-
-            // 5. COPY (Ctrl+C)
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
                 const selectedNodes = nodes.filter(n => selectedIds.includes(n.id));
-                if (selectedNodes.length > 0) {
-                    setClipboard(selectedNodes);
-                    toast.success("Copied to clipboard");
-                }
+                if (selectedNodes.length > 0) setClipboard(selectedNodes);
             }
-
-            // 6. PASTE (Ctrl+V)
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
                 if (clipboard.length > 0) {
                     const newIds = [];
                     const newNodes = clipboard.map(node => {
                         const newId = crypto.randomUUID().slice(0, 4);
                         newIds.push(newId);
-                        return {
-                            ...node,
-                            id: newId,
-                            position: { x: node.position.x + 50, y: node.position.y + 50 }
-                        };
+                        return { ...node, id: newId, position: { x: node.position.x + 50, y: node.position.y + 50 } };
                     });
                     setNodes(prev => [...prev, ...newNodes]);
                     setSelectedIds(newIds);
                 }
             }
-
-            // 7. SAVE (Ctrl+S)
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 handleSave();
             }
-
-            // 8. ESCAPE
             if (e.key === 'Escape') {
                 setSelectedIds([]);
                 setConnectingNodeId(null);
@@ -144,8 +116,11 @@ export default function NeuralCanvasPage() {
 
     // --- DATA HANDLING ---
     async function loadData() {
-        const data = await getAutomations();
-        setSavedFlows(data);
+        const flows = await getAutomations();
+        setSavedFlows(flows);
+        // Load Tasks juga untuk dropdown
+        const tasks = await getUserTasks();
+        setUserTasks(tasks);
     }
 
     const loadFlow = (flow) => {
@@ -206,10 +181,8 @@ export default function NeuralCanvasPage() {
             const startX = dragStartRef.current.x;
             const startY = dragStartRef.current.y;
             setSelectionBox({
-                x: Math.min(startX, currentX),
-                y: Math.min(startY, currentY),
-                w: Math.abs(currentX - startX),
-                h: Math.abs(currentY - startY)
+                x: Math.min(startX, currentX), y: Math.min(startY, currentY),
+                w: Math.abs(currentX - startX), h: Math.abs(currentY - startY)
             });
             return;
         }
@@ -241,10 +214,8 @@ export default function NeuralCanvasPage() {
                 const nodeScreenX = node.position.x * transform.scale + transform.x;
                 const nodeScreenY = node.position.y * transform.scale + transform.y;
                 return (
-                    nodeScreenX + 250 > selectionBox.x &&
-                    nodeScreenX < selectionBox.x + selectionBox.w &&
-                    nodeScreenY + 100 > selectionBox.y &&
-                    nodeScreenY < selectionBox.y + selectionBox.h
+                    nodeScreenX + 250 > selectionBox.x && nodeScreenX < selectionBox.x + selectionBox.w &&
+                    nodeScreenY + 100 > selectionBox.y && nodeScreenY < selectionBox.y + selectionBox.h
                 );
             }).map(n => n.id);
             setSelectedIds(prev => [...new Set([...prev, ...selectedInBox])]);
@@ -301,11 +272,10 @@ export default function NeuralCanvasPage() {
         setTempEdgeEnd(null);
     };
 
-    // --- VALIDATION & TEST RUN [RESTORED] ---
     const validateCircuit = () => {
         let errors = [];
         const triggers = nodes.filter(n => n.type === 'TRIGGER');
-        if (triggers.length === 0) errors.push("Wajib ada minimal 1 Trigger (Pemicu).");
+        if (triggers.length === 0) errors.push("Wajib ada minimal 1 Trigger.");
         
         nodes.forEach(node => {
             if (node.type === 'TRIGGER') {
@@ -431,7 +401,6 @@ export default function NeuralCanvasPage() {
                             </div>
 
                             <div className="flex items-center gap-3">
-                                {/* [RESTORED] TEST BUTTON */}
                                 <button onClick={handleTestRun} className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg text-xs font-bold hover:bg-yellow-500/20 transition">
                                     <PlayCircle size={16}/> Test
                                 </button>
@@ -478,6 +447,11 @@ export default function NeuralCanvasPage() {
 
                                 {nodes.map(node => {
                                     const isSelected = selectedIds.includes(node.id);
+                                    // Cari Nama Task untuk label
+                                    const taskLabel = node.type === 'TRIGGER' && node.data.specificTaskId 
+                                        ? (userTasks.find(t => t.id === node.data.specificTaskId)?.content || 'Tugas Terhapus')
+                                        : node.data.label;
+
                                     return (
                                         <div 
                                             key={node.id}
@@ -493,7 +467,7 @@ export default function NeuralCanvasPage() {
                                             </div>
                                             <div className="font-bold text-white text-sm flex items-center gap-2 pointer-events-none">
                                                 {node.type === 'TRIGGER' ? <Zap size={16}/> : <CheckSquare size={16}/>}
-                                                {node.data.label}
+                                                {taskLabel} {/* Tampilkan Nama Task Disini */}
                                             </div>
                                             {node.data.message && <div className="text-xs text-slate-400 mt-2 truncate pt-2 border-t border-white/5 pointer-events-none">"{node.data.message}"</div>}
 
@@ -514,7 +488,7 @@ export default function NeuralCanvasPage() {
 
                             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 bg-[#0A0F1E]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center gap-4 shadow-2xl">
                                 <div className="flex gap-2 pr-4 border-r border-white/10">
-                                    <button onClick={() => addNode('TRIGGER', { event: 'TASK_COMPLETED', label: 'Task Selesai' })} className="w-12 h-12 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400"><Zap size={20}/></button>
+                                    <button onClick={() => addNode('TRIGGER', { event: 'TASK_COMPLETED', label: 'Tugas Selesai' })} className="w-12 h-12 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400"><Zap size={20}/></button>
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => addNode('ACTION', { action: 'SEND_WA', label: 'Kirim WA', message: 'Halo!' })} className="w-12 h-12 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400"><MessageCircle size={20}/></button>
@@ -535,11 +509,32 @@ export default function NeuralCanvasPage() {
                                                 <Layers className="mx-auto text-slate-600 mb-2" size={32}/>
                                                 <p className="text-white font-bold text-lg">{selectedIds.length}</p>
                                                 <p className="text-sm text-slate-500">Nodes Selected</p>
-                                                <button onClick={removeSelectedNodes} className="w-full mt-6 py-2 bg-red-500/10 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition">Hapus {selectedIds.length} Nodes</button>
+                                                <button onClick={() => { setNodes(nodes.filter(n => !selectedIds.includes(n.id))); setSelectedIds([]); }} className="w-full mt-6 py-2 bg-red-500/10 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition">Hapus {selectedIds.length} Nodes</button>
                                             </div>
                                         ) : (
                                             singleSelectedNode && (
                                                 <>
+                                                    {/* CONFIG TRIGGER: PILIH TUGAS */}
+                                                    {singleSelectedNode.type === 'TRIGGER' && (
+                                                        <div className="mb-4">
+                                                            <label className="text-[10px] text-slate-500 font-bold uppercase mb-2 block">Trigger pada Tugas:</label>
+                                                            <select 
+                                                                className="w-full bg-[#1E293B] text-white p-2 rounded-xl border border-slate-700 text-sm outline-none focus:border-cyan-500"
+                                                                value={singleSelectedNode.data.specificTaskId || "ALL"}
+                                                                onChange={(e) => {
+                                                                    const updated = { ...singleSelectedNode, data: { ...singleSelectedNode.data, specificTaskId: e.target.value } };
+                                                                    setNodes(nodes.map(n => n.id === singleSelectedNode.id ? updated : n));
+                                                                }}
+                                                            >
+                                                                <option value="ALL">Semua Tugas</option>
+                                                                {userTasks.map(t => (
+                                                                    <option key={t.id} value={t.id}>{t.content.substring(0, 30)}</option>
+                                                                ))}
+                                                            </select>
+                                                            <p className="text-[10px] text-slate-500 mt-2">Automasi hanya jalan jika tugas ini selesai.</p>
+                                                        </div>
+                                                    )}
+
                                                     {singleSelectedNode.data.action === 'SEND_WA' && (
                                                         <div>
                                                             <label className="text-[10px] text-slate-500 font-bold uppercase mb-2 block">Pesan WhatsApp</label>
@@ -551,7 +546,7 @@ export default function NeuralCanvasPage() {
                                                     )}
                                                     <div className="mt-6 pt-6 border-t border-white/10 flex justify-between items-center">
                                                         <span className="text-xs text-slate-500">ID: {singleSelectedNode.id}</span>
-                                                        <button onClick={removeSelectedNodes} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition"><Trash2 size={16}/></button>
+                                                        <button onClick={() => { setNodes(nodes.filter(n => n.id !== singleSelectedNode.id)); setSelectedIds([]); }} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition"><Trash2 size={16}/></button>
                                                     </div>
                                                 </>
                                             )
