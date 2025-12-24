@@ -1,172 +1,176 @@
 "use client";
 
-import { useState } from "react"; // Tambah useState
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-    LayoutDashboard,
-    Package,
-    CheckSquare,
-    Settings,
-    LogOut,
-    User as UserIcon,
-    Sparkles,
-    Menu, // Icon Hamburger
-    X     // Icon Close
+    LayoutDashboard, Package, CheckSquare, Settings, LogOut,
+    User as UserIcon, Zap, Menu, X, ChevronRight, ChevronLeft
 } from "lucide-react";
 import { logout } from "@/app/actions";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function DashboardLayout({ children }) {
     const pathname = usePathname();
     const { data: session } = useSession();
     const user = session?.user;
 
-    // State untuk Mobile Menu
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false); // Mode Desktop Lipat
+
+    // Tutup menu mobile saat pindah halaman
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [pathname]);
 
     const menuItems = [
         { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Tugas Saya", href: "/dashboard/tasks", icon: CheckSquare },
         { name: "Library Aset", href: "/dashboard/library", icon: Package },
-        { name: "Tugas & Fokus", href: "/dashboard/tasks", icon: CheckSquare },
         { name: "Pengaturan", href: "/dashboard/settings", icon: Settings },
     ];
 
     return (
-        <div className="flex min-h-screen bg-[#F3F4F6] font-sans text-slate-900">
+        <div className="flex min-h-screen bg-[#020617] font-sans text-slate-200 selection:bg-cyan-500/30 selection:text-cyan-200">
 
-            {/* --- MOBILE OVERLAY (Hitam Transparan saat menu buka) --- */}
-            {isMobileMenuOpen && (
-                <div
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
-                />
-            )}
+            {/* --- MOBILE HEADER --- */}
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0A0F1E] border-b border-white/5 z-40 flex items-center justify-between px-4 shadow-lg">
+                <div className="flex items-center gap-2 font-bold text-white">
+                    <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center text-cyan-400 border border-blue-500/20">
+                        <Zap size={18} fill="currentColor" />
+                    </div>
+                    <span>Simpul Nalar</span>
+                </div>
+                <button
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="p-2 text-slate-400 hover:text-white bg-white/5 rounded-lg active:scale-95 transition"
+                >
+                    <Menu size={24} />
+                </button>
+            </div>
 
-            {/* --- SIDEBAR (Responsive) --- */}
-            {/* Logic: 
-                - Mobile: Default hidden (-translate-x-full), muncul jika state open (translate-x-0)
-                - Desktop (lg): Selalu muncul (lg:translate-x-0)
-            */}
-            <aside className={`
-                fixed inset-y-0 left-0 z-50 w-72 bg-[#0A2540] text-white shadow-2xl 
-                transform transition-transform duration-300 ease-in-out flex flex-col
-                ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} 
-                lg:translate-x-0
-            `}>
+            {/* --- MOBILE OVERLAY --- */}
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
+                    />
+                )}
+            </AnimatePresence>
 
-                {/* Brand Logo & Close Button (Mobile) */}
-                <div className="h-20 flex items-center justify-between px-6 border-b border-white/10">
+            {/* --- SIDEBAR (Responsive & Collapsible) --- */}
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 bg-[#0A0F1E] border-r border-white/5 shadow-2xl flex flex-col transition-all duration-300 ease-in-out
+                ${isMobileMenuOpen ? "translate-x-0 w-72" : "-translate-x-full w-72"} 
+                md:translate-x-0 ${isCollapsed ? "md:w-20" : "md:w-72"}`}
+            >
+                {/* Header Sidebar */}
+                <div className={`h-20 flex items-center ${isCollapsed ? "justify-center px-0" : "justify-between px-6"} border-b border-white/5 bg-blue-950/10 shrink-0 transition-all overflow-hidden`}>
                     <Link href="/" className="flex items-center gap-3 group">
-                        <div className="w-9 h-9 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                            <Sparkles size={18} fill="currentColor" className="text-white/90" />
+                        <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center text-cyan-400 border border-blue-500/20 shadow-[0_0_15px_-3px_rgba(37,99,235,0.4)] shrink-0">
+                            <Zap size={18} fill="currentColor" />
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-lg font-bold tracking-tight leading-none">Simpul Nalar</span>
-                            <span className="text-[10px] text-blue-200/60 uppercase tracking-widest mt-1 font-medium">Workspace</span>
+                        <div className={`flex flex-col transition-opacity duration-300 ${isCollapsed ? "opacity-0 w-0 hidden" : "opacity-100"}`}>
+                            <span className="text-lg font-bold text-white tracking-tight leading-none">Simpul Nalar</span>
+                            <span className="text-[10px] text-blue-400 uppercase tracking-widest mt-1 font-medium">Workspace</span>
                         </div>
                     </Link>
-                    {/* Tombol Tutup di Mobile */}
-                    <button
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="lg:hidden text-slate-400 hover:text-white transition"
-                    >
-                        <X size={24} />
+
+                    {/* Close Button Mobile */}
+                    <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white">
+                        <X size={20} />
                     </button>
                 </div>
 
+                {/* Desktop Toggle Button */}
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="hidden md:flex absolute -right-3 top-24 bg-[#0A0F1E] text-slate-400 border border-white/10 p-1 rounded-full shadow-lg hover:text-white hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all z-50"
+                >
+                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                </button>
+
                 {/* Navigation Menu */}
-                <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
-                    <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Menu Utama</p>
+                <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto overflow-x-hidden">
                     {menuItems.map((item) => {
                         const Icon = item.icon;
-                        const isActive = item.href === "/dashboard"
-                            ? pathname === "/dashboard"
-                            : pathname.startsWith(item.href);
+                        const isActive = pathname === item.href;
 
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                onClick={() => setIsMobileMenuOpen(false)} // Tutup menu saat klik link di HP
-                                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 group relative ${isActive
-                                        ? "bg-white/10 text-white shadow-inner"
-                                        : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                title={isCollapsed ? item.name : ""}
+                                className={`group flex items-center rounded-xl py-3 text-sm font-medium transition-all duration-200 relative overflow-hidden ${isCollapsed ? "justify-center px-2" : "gap-3 px-4"
+                                    } ${isActive
+                                        ? "text-white bg-gradient-to-r from-blue-600/20 to-transparent border border-blue-500/20"
+                                        : "text-slate-400 hover:text-white hover:bg-white/5"
                                     }`}
                             >
+                                {/* Active Indicator */}
                                 {isActive && (
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full" />
+                                    <motion.div
+                                        layoutId="activeStripUser"
+                                        className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500"
+                                    />
                                 )}
-                                <Icon size={20} className={`transition-colors ${isActive ? "text-blue-400" : "text-slate-500 group-hover:text-blue-300"}`} />
-                                {item.name}
+
+                                <Icon size={20} className={`shrink-0 ${isActive ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+
+                                {!isCollapsed && (
+                                    <span className="whitespace-nowrap opacity-100 transition-opacity duration-300">
+                                        {item.name}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}
                 </nav>
 
                 {/* User Profile Footer */}
-                <div className="p-4 border-t border-white/10 bg-[#081F36]">
-                    <div className="flex items-center gap-3 mb-4 px-2">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 p-[2px] flex-shrink-0">
-                            <div className="h-full w-full rounded-full bg-[#0A2540] flex items-center justify-center overflow-hidden">
+                <div className="p-4 border-t border-white/5 bg-[#050B14]">
+                    <div className={`flex items-center gap-3 mb-4 px-1 transition-all duration-300 ${isCollapsed ? "justify-center" : ""}`}>
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 p-[1px] shrink-0">
+                            <div className="h-full w-full rounded-full bg-[#0A0F1E] flex items-center justify-center overflow-hidden">
                                 {user?.image ? (
                                     <img src={user.image} alt="Profile" className="w-full h-full object-cover" />
                                 ) : (
-                                    <span className="font-bold text-sm text-blue-200">{user?.name?.charAt(0) || "U"}</span>
+                                    <span className="font-bold text-sm text-cyan-400">{user?.name?.charAt(0) || "U"}</span>
                                 )}
                             </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-white truncate">{user?.name || "Member"}</p>
-                            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
-                        </div>
+                        {!isCollapsed && (
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                                <p className="text-sm font-bold text-white truncate">{user?.name || "Member"}</p>
+                                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                            </div>
+                        )}
                     </div>
+
                     <form action={logout}>
-                        <button className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all">
-                            <LogOut size={14} />
-                            Sign Out
+                        <button className={`flex w-full items-center rounded-lg py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all ${isCollapsed ? "justify-center px-0" : "gap-2 px-4 justify-center"
+                            }`}>
+                            <LogOut size={16} className="shrink-0" />
+                            {!isCollapsed && <span>Sign Out</span>}
                         </button>
                     </form>
                 </div>
             </aside>
 
-            {/* --- MAIN CONTENT WRAPPER --- */}
-            {/* Logic: Margin kiri 0 di mobile, 72 (18rem) di Desktop */}
-            <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 ml-0 lg:ml-72">
+            {/* --- MAIN CONTENT --- */}
+            <div className={`flex-1 relative transition-all duration-300 pt-16 md:pt-0 ${isCollapsed ? "md:ml-20" : "md:ml-72"}`}>
+                {/* Background Pattern */}
+                <div className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+                    style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+                </div>
 
-                {/* Header Mobile & Desktop */}
-                <header className="sticky top-0 z-40 h-16 lg:h-20 flex items-center justify-between px-4 lg:px-8 bg-[#F3F4F6]/80 backdrop-blur-md border-b border-slate-200/50">
-
-                    <div className="flex items-center gap-4">
-                        {/* Tombol Hamburger (Hanya muncul di Mobile) */}
-                        <button
-                            onClick={() => setIsMobileMenuOpen(true)}
-                            className="p-2 -ml-2 text-slate-600 hover:bg-slate-200 rounded-lg lg:hidden"
-                        >
-                            <Menu size={24} />
-                        </button>
-
-                        <h2 className="text-lg lg:text-xl font-bold text-slate-800 tracking-tight truncate">
-                            {menuItems.find((m) => m.href === pathname)?.name || "Dashboard"}
-                        </h2>
-                    </div>
-
-                    {/* Status Indikator (Hidden di HP kecil banget) */}
-                    <div className="hidden sm:flex items-center gap-4">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100/50 border border-emerald-200 rounded-full">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                            </span>
-                            <span className="text-xs font-bold text-emerald-700">Sistem Aktif</span>
-                        </div>
-                    </div>
-                </header>
-
-                <main className="flex-1 p-4 lg:p-8 overflow-y-auto overflow-x-hidden">
-                    <div className="max-w-6xl mx-auto">
-                        {children}
-                    </div>
+                <main className="relative z-10 p-6 md:p-8 overflow-y-auto min-h-screen">
+                    {children}
                 </main>
             </div>
         </div>

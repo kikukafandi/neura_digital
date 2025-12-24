@@ -93,9 +93,9 @@ export const products = pgTable("products", {
 export const tasks = pgTable("task", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
-    content: text("content").notNull(), 
-    notionPageId: text("notionPageId"), 
-    isSynced: boolean("isSynced").default(false), 
+    content: text("content").notNull(),
+    notionPageId: text("notionPageId"),
+    isSynced: boolean("isSynced").default(false),
 
     isCompleted: boolean("isCompleted").default(false),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
@@ -104,8 +104,17 @@ export const tasks = pgTable("task", {
 export const subtasks = pgTable("subtask", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     taskId: text("taskId").notNull().references(() => tasks.id, { onDelete: "cascade" }),
-    content: text("content").notNull(), 
+    content: text("content").notNull(),
     notionBlockId: text("notionBlockId"),
     isCompleted: boolean("isCompleted").default(false),
     createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
+});
+
+export const templates = pgTable("templates", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(), // Nama SOP
+    description: text("description"), // Deskripsi singkat
+    structure: json("structure").notNull(), // Menyimpan array langkah-langkah (subtasks)
+    createdAt: timestamp("created_at").defaultNow(),
 });

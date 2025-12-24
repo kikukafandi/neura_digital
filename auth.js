@@ -4,7 +4,7 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
-import { accounts, sessions, users, verificationTokens } from "@/db/schema";
+import { accounts, sessions, users, verificationTokens } from "@/db/schema"; // Pastikan import schema benar
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
@@ -18,6 +18,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // PENTING: Paksa session menggunakan JWT agar Middleware bisa membacanya tanpa akses DB langsung
     session: {
         strategy: "jwt",
+    },
+    // Konfigurasi Halaman Login Custom
+    pages: {
+        signIn: "/login",
+        error: "/login", // Redirect error ke login juga
     },
     providers: [
         // Conditionally register OAuth providers if env vars are present
@@ -48,14 +53,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 if (!email || !password) return null;
 
+                // Query DB
                 const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
                 const user = rows?.[0];
 
                 if (!user || !user.password) return null;
 
+                // Cek Password
                 const ok = await bcrypt.compare(password, user.password);
                 if (!ok) return null;
 
+                // Return user object
                 return {
                     id: user.id,
                     name: user.name ?? null,
@@ -68,21 +76,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
-        // 1. Masukkan data user ke Token JWT saat login berhasil
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
+            // Saat Login Awal
             if (user) {
                 token.id = user.id;
+                token.name = user.name;
                 token.role = user.role;
                 token.plan = user.plan;
             }
+
+            if (trigger === "update" && session) {
+                if (session.name) token.name = session.name;
+            }
+
             return token;
         },
-        // 2. Saat session diakses di client/server, ambil data dari Token JWT
         async session({ session, token }) {
             if (token && session.user) {
                 session.user.id = token.id;
                 session.user.role = token.role;
                 session.user.plan = token.plan;
+                session.user.name = token.name;
             }
             return session;
         },
